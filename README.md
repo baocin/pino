@@ -13,12 +13,26 @@ To run pino on a moderately powerful modern GPU:
 - ~7 TFLOPS at FP32
 
 ## Folder Structure
+- `knowledge-base/`
+  - Contains the any static files that should be RAGed for the agent
+  - 
+
+- `db/`
+  - timescaledb
+  - start: `docker-compose up -d`
+  - data volume: `/var/lib/docker/volumes/db_timescaledb-data/_data`
+
+- `maps/`
+  - Contains the docker-compose for the nominatim server
+  - start: `docker-compose up -d`
+  - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
+  
 
 - `android-app/`
   - Contains the Android application for sending off gps/audio/sensors/screenshots
   - 
 
-- `websocket-realtime-sensor-ingest/`
+- `websocket-realtime-ingest/`
   - For real-time sensor data ingestion from Android
   - 
 
@@ -46,6 +60,11 @@ To run pino on a moderately powerful modern GPU:
 ## Getting Started
 
 (Instructions for installation and setup to be added)
+
+- Update the .env files:
+  - `android-app/app/src/main/java/red/steele/injest/.env`
+    - Needs Websocket Server IP
+  - 
 
 ## Contribution
 
