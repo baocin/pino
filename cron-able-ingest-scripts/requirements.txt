@@ -1,0 +1,11 @@
+requests
+python-dotenv
+schedule
+caldav
+psycopg2
+playwright
+asyncio
+psutil
+GPUtil
+fastembed
+numpy
