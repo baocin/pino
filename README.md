@@ -23,6 +23,10 @@ To run pino on a moderately powerful modern GPU:
   - start: `docker-compose up -d`
   - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
 
+- `gotify/`
+  - For easy push notifications to android/ios
+  - start: `docker-compose up -d`
+
 - `android-app/`
   - Contains the Android application for sending off gps/audio/sensors/screenshots
   - 

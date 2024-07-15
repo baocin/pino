@@ -63,3 +63,14 @@ scheduled-injest/tweet-scrape/tweets_with_data.json
 scheduled-injest/tweet-scrape/tweets.json
 
 scheduled-injest/tweet-scrape/x_session.json
+gotify/.env
+tools/gotify/.env
+
+scheduled-injest/tweets/good/
+scheduled-injest/tweets/img/
+scheduled-injest/github/.env
+scheduled-injest/github/__pycache__/
+
+scheduled-injest/tweets/__pycache__/
+
+scheduled-injest/tweets/.env
