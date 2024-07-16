@@ -74,3 +74,27 @@ scheduled-injest/github/__pycache__/
 scheduled-injest/tweets/__pycache__/
 
 scheduled-injest/tweets/.env
+
+realtime-injest/audio/
+
+subscriptions/venv/
+
+subscriptions/.env
+
+.vscode/
+
+db/schema_backup.sql
+
+scheduled-injest/manager.log
+
+scheduled-injest/x_session.json
+
+subscriptions/__pycache__/
+
+subscriptions/handlers/gps/__pycache__/
+
+subscriptions/handlers/sensor/__pycache__/
+
+subscriptions/tools/gotify/__pycache__/
+
+subscriptions/tools/gotify/.env

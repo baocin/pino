@@ -246,54 +246,55 @@ class AudioProcessor:
             audio_file.write(audio_data)
     
 
-async def detect_and_save_speech(self, audio_data, source, todays_vad_file_path):
-    print("detect_and_save_speech")
-    self.audio_frame_cache.append(audio_data)
-    if self.speech_detected:
-        self.last_speech_detected += 1
+    async def detect_and_save_speech(self, audio_data, source, todays_vad_file_path):
+        print("detect_and_save_speech")
+        self.audio_frame_cache.append(audio_data)
+        if self.speech_detected:
+            self.last_speech_detected += 1
 
-    tensor = torch.tensor(np.frombuffer(
-        audio_data, dtype=np.int16).astype(np.float32))
-    window_size_samples = 512
-    buffer_frames = 10  # Number of frames to include before and after speech
+        tensor = torch.tensor(np.frombuffer(
+            audio_data, dtype=np.int16).astype(np.float32))
+        window_size_samples = 512
+        buffer_frames = 10  # Number of frames to include before and after speech
 
-    for i in range(0, len(tensor), window_size_samples):
-        audio_chunk = tensor[i: i + window_size_samples]
+        for i in range(0, len(tensor), window_size_samples):
+            audio_chunk = tensor[i: i + window_size_samples]
 
-        if len(audio_chunk) < window_size_samples:
-            break
-        speech_prob = self.model(audio_chunk, self.sample_rate).item()
-        self.speech_probs.append(speech_prob)
-        recent_probs = self.speech_probs[-10:]
-        mean_prob = np.mean(recent_probs)
-        std_dev = np.std(recent_probs)
-        threshold = mean_prob + 2 * std_dev
+            if len(audio_chunk) < window_size_samples:
+                break
+            speech_prob = self.model(audio_chunk, self.sample_rate).item()
+            self.speech_probs.append(speech_prob)
+            recent_probs = self.speech_probs[-10:]
+            mean_prob = np.mean(recent_probs)
+            std_dev = np.std(recent_probs)
+            threshold = mean_prob + 2 * std_dev
 
-        if speech_prob and speech_prob > 0.15 and speech_prob > threshold:
-            self.speech_detected = True
+            if speech_prob and speech_prob > 0.15 and speech_prob > threshold:
+                self.speech_detected = True
 
-        # Yield control to the event loop to allow other tasks to run
-        await asyncio.sleep(0)
+            # Yield control to the event loop to allow other tasks to run
+            await asyncio.sleep(0)
 
-    if self.speech_detected and self.last_speech_detected > 20:
-        start_index = max(0, len(self.audio_frame_cache) -
-                          self.last_speech_detected - buffer_frames)
-        end_index = len(self.audio_frame_cache)
-        for frame in self.audio_frame_cache[start_index:end_index]:
+        if self.speech_detected and self.last_speech_detected > 20:
+            start_index = max(0, len(self.audio_frame_cache) -
+                            self.last_speech_detected - buffer_frames)
+            end_index = len(self.audio_frame_cache)
+            for frame in self.audio_frame_cache[start_index:end_index]:
+                self.append_audio_to_file(
+                    bytearray(frame), file_path=todays_vad_file_path)
+            silence_duration = 1  # 1 second
+            silence_audio = np.zeros(
+                int(self.sample_rate * silence_duration), dtype=np.int16).tobytes()
             self.append_audio_to_file(
-                bytearray(frame), file_path=todays_vad_file_path)
-        silence_duration = 1  # 1 second
-        silence_audio = np.zeros(
-            int(self.sample_rate * silence_duration), dtype=np.int16).tobytes()
-        self.append_audio_to_file(
-            silence_audio, file_path=todays_vad_file_path)
-        file_length = os.path.getsize(todays_vad_file_path) - 44
-        self.write_wav_header(
-            todays_vad_file_path, self.sample_rate, self.sample_width * 8, 1, file_length)
-        # Clear processed frames
-        self.audio_frame_cache = self.audio_frame_cache[end_index:]
-        start_time = datetime.datetime.now().isoformat()
-        self.last_speech_detected = 0
-        self.speech_detected = False
+                silence_audio, file_path=todays_vad_file_path)
+            file_length = os.path.getsize(todays_vad_file_path) - 44
+            self.write_wav_header(
+                todays_vad_file_path, self.sample_rate, self.sample_width * 8, 1, file_length)
+            # Clear processed frames
+            self.audio_frame_cache = self.audio_frame_cache[end_index:]
+            start_time = datetime.datetime.now().isoformat()
+            self.last_speech_detected = 0
+            self.speech_detected = False
 
-    self.vad_iterator.reset_states()
+        self.vad_iterator.reset_states()
+

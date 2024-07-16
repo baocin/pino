@@ -20,7 +20,7 @@ class AudioService : Service() {
     private lateinit var audioRecord: AudioRecord
     private lateinit var webSocketManager: WebSocketManager
     private val sampleRate = 8000
-    private val bufferSize = 1024
+    private val bufferSize = 512
 //     AudioRecord.getMinBufferSize(
 //        sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
 //    )
