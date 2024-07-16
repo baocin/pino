@@ -1,36 +1,31 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi import HTTPException
-from typing import List
-import logging
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List, Any
 from pydantic import BaseModel
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+import logging
 import json
 import shutil
-from fastapi import Request
 import wave
 import struct
-from datetime import datetime
 import base64
-from collections import deque
 import heapq
-from fastapi.middleware.cors import CORSMiddleware
-from dataclasses import dataclass, field
-from typing import Any
-from process_heap import QueueProcessor
 import hashlib
-from postgres import PostgresInterface
-from process_audio import AudioProcessor
-from process_screenshot import ScreenshotProcessor
-from process_photo import PhotoProcessor
-import zstd
-from injest_mail import EmailInjest
-from injest_server_stats import SystemStatsRecorder
-from dotenv import load_dotenv
-from postgres import PostgresInterface
 import os
-from datetime import datetime, timedelta
+# import zstd
+from collections import deque
+from dotenv import load_dotenv
+# from processors.process_heap import QueueProcessor
+from db.postgres import PostgresInterface
+from processors.process_audio import AudioProcessor
+from processors.process_screenshot import ScreenshotProcessor
+from processors.process_photo import PhotoProcessor
+# from injest_mail import EmailInjest
+# from injest_server_stats import SystemStatsRecorder
 
-load_dotenv()  # Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
@@ -93,15 +88,6 @@ class NotificationData(BaseModel):
 audio_processor = AudioProcessor(db)
 screenshot_processor = ScreenshotProcessor(db)
 photo_processor = PhotoProcessor(db)
-
-email_injest = EmailInjest(db)
-
-server_stats_injest = SystemStatsRecorder(db)
-# email_injest.start_sync()
-# recorder.start()
-# time.sleep(10)  # Record stats for 10 seconds
-# recorder.stop()
-# print(recorder.stats)
 
 
 packet_tally = {
@@ -405,5 +391,5 @@ async def gps_map(start_date: str = None, end_date: str = None, days: int = 1):
     
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=80)
+    uvicorn.run(app, host="0.0.0.0", port=8081)
     #443, ssl_keyfile="path/to/your/keyfile.pem", ssl_certfile="path/to/your/certfile.pem")

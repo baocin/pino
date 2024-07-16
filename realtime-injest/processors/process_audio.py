@@ -214,27 +214,27 @@ class AudioProcessor:
         #     threading.Thread(target=self.convert_to_codec2, args=(self.yesterday_wav_file_path, self.yesterday_codec2_file_path)).start()
         # print("Converted to codec2")
         # Detect Speech
-        yesterdays_temp_vad_file_path = self.calculate_date_path(prefix="vad_temp_", source=device_id)
-        print(
-            f"Yesterday's temp VAD file path: {yesterdays_temp_vad_file_path}")
-        if os.path.exists(yesterdays_temp_vad_file_path):
-            print(
-                f"Removing yesterday's temp VAD file: {yesterdays_temp_vad_file_path}")
-            os.remove(yesterdays_temp_vad_file_path)
-        print("Yesterday's temp VAD file removed if it existed")
-        todays_temp_vad_file_path = self.calculate_date_path(prefix="vad_temp_", source=device_id)
-        print(f"Today's temp VAD file path: {todays_temp_vad_file_path}")
-        self.append_audio_to_file(audio_data, file_path=todays_temp_vad_file_path)
-        print(f"Audio data appended to {todays_temp_vad_file_path}")
-        self.write_wav_header(todays_temp_vad_file_path, self.sample_rate, self.sample_width * 8, 1, len(audio_data))
-        print(f"WAV header written to {todays_temp_vad_file_path}")
-        wav = self.read_audio(todays_temp_vad_file_path, sampling_rate=self.sample_rate)
-        print(f"Audio read from {todays_temp_vad_file_path}")
-        todays_vad_file_path = self.calculate_date_path(prefix="vad_", source=device_id)
-        print(f"Today's VAD file path: {todays_vad_file_path}")
-        await self.detect_and_save_speech(audio_data, device_id, todays_vad_file_path)
-        print("Speech detection and saving completed")
-        print("Speech detected")
+        # yesterdays_temp_vad_file_path = self.calculate_date_path(prefix="vad_temp_", source=device_id)
+        # print(
+        #     f"Yesterday's temp VAD file path: {yesterdays_temp_vad_file_path}")
+        # if os.path.exists(yesterdays_temp_vad_file_path):
+        #     print(
+        #         f"Removing yesterday's temp VAD file: {yesterdays_temp_vad_file_path}")
+        #     os.remove(yesterdays_temp_vad_file_path)
+        # print("Yesterday's temp VAD file removed if it existed")
+        # todays_temp_vad_file_path = self.calculate_date_path(prefix="vad_temp_", source=device_id)
+        # print(f"Today's temp VAD file path: {todays_temp_vad_file_path}")
+        # self.append_audio_to_file(audio_data, file_path=todays_temp_vad_file_path)
+        # print(f"Audio data appended to {todays_temp_vad_file_path}")
+        # self.write_wav_header(todays_temp_vad_file_path, self.sample_rate, self.sample_width * 8, 1, len(audio_data))
+        # print(f"WAV header written to {todays_temp_vad_file_path}")
+        # wav = self.read_audio(todays_temp_vad_file_path, sampling_rate=self.sample_rate)
+        # print(f"Audio read from {todays_temp_vad_file_path}")
+        # todays_vad_file_path = self.calculate_date_path(prefix="vad_", source=device_id)
+        # print(f"Today's VAD file path: {todays_vad_file_path}")
+        # await self.detect_and_save_speech(audio_data, device_id, todays_vad_file_path)
+        # print("Speech detection and saving completed")
+        # print("Speech detected")
 
     def decode_and_decompress_audio(self, audio_data_base64):
         compressed_audio_data = base64.b64decode(audio_data_base64)

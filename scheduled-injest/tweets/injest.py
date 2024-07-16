@@ -69,9 +69,9 @@ class TweetInjest:
 
     def insert_tweet(self, tweet_data):
         try:
-            tweet_data_copy = tweet_data.copy()
-            tweet_data_copy.pop('image_data', None)
-            print(f"Inserting tweet: {tweet_data_copy}")
+            # tweet_data_copy = tweet_data.copy()
+            # tweet_data_copy.pop('image_data', None)
+            # print(f"Inserting tweet: {tweet_data_copy}")
 
             tweet_text = tweet_data.get('text', '')
             tweet_url = tweet_data.get('tweetLink', '')
@@ -91,9 +91,7 @@ class TweetInjest:
                 return
 
             # Generate text embedding
-            text_embedding = self.embedding_service.embed_text([tweet_text])
-
-            print(f"text_embedding: {text_embedding}")
+            text_embedding = self.embedding_service.embed_text([tweet_text])[0]
 
             # Insert tweet data into 'tweets' table
             tweet_sql = """
@@ -128,12 +126,12 @@ class TweetInjest:
             await page.goto(url)
 
             try:
-                await page.wait_for_load_state("networkidle", timeout=20000)
+                await page.wait_for_load_state("networkidle", timeout=2000)
             except Exception:
                 return None
 
             try:
-                await page.wait_for_selector("article[data-testid='tweet']", timeout=20000)
+                await page.wait_for_selector("article[data-testid='tweet']", timeout=2000)
             except Exception:
                 return {
                     "code": 404,
@@ -143,13 +141,9 @@ class TweetInjest:
             tweet_id = url.split("/")[-1]
             try:
                 image_data = await page.locator('[data-testid="tweet"]').screenshot()
-                logging.info(f"Screenshot captured: {image_data[:30]}...")  # Log the first 30 bytes for verification
             except Exception as e:
                 logging.error(f"Screenshot failed: {e}")
-                return {
-                    "code": 500,
-                    "message": "Screenshot failed"
-                }
+                return None
 
             tweet_data = await self.collect_background_calls(_xhr_calls)
             tweet_data['image_data'] = image_data
@@ -160,7 +154,7 @@ class TweetInjest:
 
     async def insert_tweet_extended(self, tweet_data):
         try:
-            print({k: v for k, v in tweet_data.items() if k != 'image_data'})
+            # print({k: v for k, v in tweet_data.items() if k != 'image_data'})
             # tweet_id = tweet_data.get('tweet_id')
             url = tweet_data.get('url')
             user_id = tweet_data.get('user', {}).get('id')
@@ -194,7 +188,6 @@ class TweetInjest:
                 INSERT INTO tweet_images (tweet_id, url, image_data, image_embedding)
                 VALUES (%s, %s, %s, %s)
                 """
-                logging.info(f"Inserting image data for tweet {image_sql}")
                 image_values = (tweet_id, url, image_data, image_embedding)
                 cursor.execute(image_sql, image_values)
 
@@ -356,7 +349,7 @@ async def random_scroll(page):
 
 async def setup_browser(playwright: Playwright):
     user_agent = random.choice(USER_AGENTS)
-    browser = await playwright.chromium.launch(headless=False)
+    browser = await playwright.chromium.launch(headless=True)
     context = await browser.new_context(
         user_agent=user_agent,
         viewport={'width': 1920, 'height': 1080},
