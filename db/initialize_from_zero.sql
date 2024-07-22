@@ -492,21 +492,71 @@ after
 insert
 	on public.gps_data for each row execute function handle_location_transitions();
 
+ALTER TABLE public.gps_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+
+CREATE TYPE public.datatype AS ENUM (
+    'audio', 'image', 'text', 'accelerometer', 'magnetometer', 'depth',
+    'gyroscope', 'barometer', 'proximity', 'light', 'gps', 'video',
+    'temperature', 'humidity', 'pressure', 'heart_rate', 'step_count',
+    'wifi', 'bluetooth', 'nfc', 'fingerprint', 'face_recognition'
+);
+
+CREATE TABLE public.known_classes (
+    id uuid DEFAULT uuid_generate_v7() NOT NULL,
+    embedding public.vector NULL,
+    created_at timestamptz DEFAULT now() NULL,
+    name varchar NOT NULL,
+    embedding_model_name varchar NULL,
+    embedded_data bytea NULL,
+	description TEXT,
+	metadata JSONB,
+	datatype public.datatype NOT NULL,
+	last_updated_at TIMESTAMPTZ DEFAULT now(),
+	radius_theshold float8 NULL;
+    CONSTRAINT known_audio_classes_pk PRIMARY KEY (id)
+);
+
+ALTER TABLE public.known_classes ADD CONSTRAINT known_classes_unique_name UNIQUE ("name");
+COMMENT ON COLUMN public.known_classes.radius_theshold IS 'Definitely not the best way to represent the boundary between true and false for this class buuuuut it should work.';
+
+CREATE INDEX idx_known_classes_datatype ON public.known_classes (datatype);
+
+CREATE TABLE public.known_class_detections (
+    id uuid DEFAULT uuid_generate_v7() NOT NULL,
+    known_class_id uuid NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    distance float8 NOT NULL,
+    source_data bytea NULL,
+    source_data_type public.datatype NULL,
+    metadata JSONB,
+    CONSTRAINT known_class_detections_pkey PRIMARY KEY (id),
+    CONSTRAINT known_class_detections_known_class_fkey FOREIGN KEY (known_class_id) REFERENCES public.known_classes(id)
+);
+
+CREATE INDEX idx_known_class_detections_known_class_id ON public.known_class_detections (known_class_id);
+CREATE INDEX idx_known_class_detections_source_data_type ON public.known_class_detections (source_data_type);
+
+COMMENT ON TABLE public.known_class_detections IS 'Stores detections of known classes, linking to the known_classes table';
+COMMENT ON COLUMN public.known_class_detections.known_class_id IS 'References the id of the detected known class';
+COMMENT ON COLUMN public.known_class_detections.distance IS 'Distance measure for the detection, e.g., cosine distance for embeddings';
+COMMENT ON COLUMN public.known_class_detections.source_data IS 'Raw source data that triggered the detection, if available';
+COMMENT ON COLUMN public.known_class_detections.source_data_type IS 'Type of the source data';
+COMMENT ON COLUMN public.known_class_detections.metadata IS 'Additional metadata about the detection in JSON format';
 
 CREATE TABLE public.location_transitions (
 	id serial4 NOT NULL,
 	location_id int4 NULL,
 	isentering bool NOT NULL,
 	isleaving bool NOT NULL,
-	transitioned_at timestamp DEFAULT CURRENT_TIMESTAMP NULL,
 	device_id int4 NULL,
-	created_at timestamp DEFAULT CURRENT_TIMESTAMP NULL,
+	created_at timestamptz DEFAULT CURRENT_TIMESTAMP NULL,
 	CONSTRAINT location_transitions_pkey PRIMARY KEY (id),
 	CONSTRAINT location_transitions_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id),
 	CONSTRAINT location_transitions_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.known_locations(id)
 );
 CREATE INDEX idx_location_transitions_location_id ON public.location_transitions USING btree (location_id);
-CREATE INDEX idx_location_transitions_transitioned_at ON public.location_transitions USING btree (transitioned_at);
 COMMENT ON TABLE public.location_transitions IS 'All regions must be non overlapping';
 
 
@@ -707,6 +757,41 @@ ALTER TABLE public.github_stars
 ADD COLUMN repo_json JSONB;
 
 
+-- Add last_known_location_id column to devices table
+ALTER TABLE public.devices
+ADD COLUMN last_known_location_id INT;
+
+-- Add foreign key constraint
+ALTER TABLE public.devices
+ADD CONSTRAINT fk_devices_last_known_location
+FOREIGN KEY (last_known_location_id)
+REFERENCES public.known_locations(id);
+
+-- Create an index on the new column for better query performance
+CREATE INDEX idx_devices_last_known_location_id ON public.devices(last_known_location_id);
+
+
+-- Create a function to update the devices table with the last known location name
+CREATE OR REPLACE FUNCTION update_device_last_known_location()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update the devices table with the new location_id
+    UPDATE public.devices
+    SET last_known_location_id = NEW.location_id
+    WHERE id = NEW.device_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Create a trigger to call the function when a new row is inserted into location_transitions
+CREATE TRIGGER update_device_location_trigger
+AFTER INSERT ON public.location_transitions
+FOR EACH ROW
+EXECUTE FUNCTION update_device_last_known_location();
+
 SELECT
 	create_hypertable(
 		'emails',
@@ -728,3 +813,15 @@ SELECT
 		chunk_time_interval = > INTERVAL '14 day',
 		if_not_exists = > TRUE
 	);
+
+
+
+
+
+
+
+
+
+
+
+
