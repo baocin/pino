@@ -45,46 +45,12 @@ class DB:
         logging.info("Database initialization complete.")
         return connection
 
-    # def listen_to_channel(self, channel_name):
-    #     if not hasattr(self, 'cursor'):
-    #         self.cursor = self.connection.cursor()
-    #     self.cursor.execute(f"LISTEN {channel_name};")
-    #     logging.info(f"Listening to channel: {channel_name}")
-    #     return_value = f"Listening to channel: {channel_name}"
-    #     logging.info(f"Return value: {return_value}")
-    #     return return_value
-    
-    # def notify(self, channel_name, payload):
-    #     if not hasattr(self, 'cursor'):
-    #         self.cursor = self.connection.cursor()
-    #     self.cursor.execute(f"NOTIFY {channel_name}, '{payload}';")
-    #     self.connection.commit()
-    #     logging.info(f"Notified channel: {channel_name} with payload: {payload}")
-
-    # def start_listening(self, callback):
-    #     try:
-    #         while True:
-    #             self.connection.poll()
-    #             while self.connection.notifies:
-    #                 notify = self.connection.notifies.pop(0)
-    #                 logging.info(f"Received notification: {notify}")
-    #                 callback(notify)
-    #             if select.select([self.connection], [], [], 5) == ([], [], []):
-    #                 logging.info("No notifications received")
-    #     except Exception as e:
-    #         logging.error(f"Error while listening for notifications: {e}")
-    #     finally:
-    #         if hasattr(self, 'cursor'):
-    #             self.cursor.close()
-    #         if hasattr(self, 'connection'):
-    #             self.connection.close()
-
-    def poll_query(self, query, interval, callback):
-        self._cancel_polling = False  # Attribute to control polling
-        self._polling_thread = threading.Thread(target=self._polling_loop, args=(query, interval, callback))
+    def poll_query(self, query, interval, callback, trigger_on_all_queries=False):
+        self._cancel_polling = False
+        self._polling_thread = threading.Thread(target=self._polling_loop, args=(query, interval, callback, trigger_on_all_queries))
         self._polling_thread.start()
 
-    def _polling_loop(self, query, interval, callback):
+    def _polling_loop(self, query, interval, callback, trigger_on_all_queries):
         previous_result = None
         first_fetch = True
         
@@ -96,13 +62,15 @@ class DB:
                 if first_fetch:
                     first_fetch = False
                 else:
-                    differences = [row for row in result if row not in previous_result]
-                    if differences:
-                        callback(differences)
+                    if trigger_on_all_queries:
+                        callback(result)
+                    else:
+                        differences = [row for row in result if row not in previous_result]
+                        if differences:
+                            callback(differences)
                 
-                if result != None:
+                if result is not None:
                     previous_result = result
-                logging.info(f"Result: {result}")
 
                 time.sleep(interval)
             except Exception as e:

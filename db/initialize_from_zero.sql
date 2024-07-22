@@ -166,44 +166,83 @@ end IF;
 RETURN NEW;
 END;
 $ function $;
-CREATE
-OR REPLACE FUNCTION public.handle_location_transitions() RETURNS trigger LANGUAGE plpgsql AS $ function $ DECLARE location_id INT;
+
+
+
+CREATE OR REPLACE FUNCTION public.handle_location_transitions()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+
+DECLARE
+
+location_id INT;
+
 previous_location_id INT;
-BEGIN 
-SELECT
-	classified_as INTO location_id
-FROM
-	gps_data
-WHERE
-	id = NEW.id;
 
-SELECT
-	classified_as INTO previous_location_id
-FROM
-	gps_data
-WHERE
-	id = NEW.id - 1
-	AND created_at >= NOW() - INTERVAL '30 seconds'
-LIMIT
-	1;
+BEGIN
 
-IF location_id IS NOT NULL THEN 
+-- Find the location_id for the new GPS data
+
+SELECT classified_as INTO location_id
+
+FROM gps_data
+
+WHERE id = NEW.id;
+
+
+
+-- Find previous_location_id for the row immediately prior to this one that occurred within 30 seconds
+
+SELECT classified_as INTO previous_location_id
+
+FROM gps_data
+
+WHERE id = NEW.id - 1
+
+AND created_at >= NOW() - INTERVAL '30 seconds'
+
+LIMIT 1;
+
+
+
+-- If a matching location is found, update the classified_as column
+
+IF location_id IS NOT NULL THEN
+
+-- Detect location transitions
+
 IF previous_location_id IS NULL THEN
-INSERT INTO
-	location_transitions (location_id, isEntering, isLeaving)
-VALUES
-	(location_id, TRUE, FALSE);
+
+INSERT INTO location_transitions (location_id, isEntering, isLeaving, device_id)
+
+VALUES (location_id, TRUE, false, new.device_id);
+
 END IF;
-ELSE IF previous_location_id IS NOT NULL THEN
-INSERT INTO
-	location_transitions (location_id, isEntering, isLeaving)
-VALUES
-	(previous_location_id, FALSE, TRUE);
+
+ELSE
+
+IF previous_location_id IS NOT NULL THEN
+
+INSERT INTO location_transitions (location_id, isEntering, isLeaving, device_id)
+
+VALUES (previous_location_id, FALSE, true, new.device_id);
+
 END IF;
+
 END IF;
+
+
+
 RETURN NEW;
+
 END;
-$ function $;
+
+$function$
+;
+
+
+
 CREATE
 OR REPLACE FUNCTION public.update_updated_at_column() RETURNS trigger LANGUAGE plpgsql AS $ function $ BEGIN NEW.updated_at = NOW();
 RETURN NEW;
@@ -307,6 +346,38 @@ CREATE TABLE public.browser_data (
 );
 
 
+CREATE TABLE public.device_status_log (
+	id serial4 NOT NULL,
+	device_id int4 NOT NULL,
+	timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+	last_movement TIMESTAMPTZ,
+	screen_up BOOLEAN,
+	speed FLOAT,
+	last_known_address JSONB,
+	online BOOLEAN,
+	CONSTRAINT device_status_log_pkey PRIMARY KEY (id),
+	CONSTRAINT fk_device FOREIGN KEY (device_id) REFERENCES public.devices(id)
+);
+
+CREATE INDEX idx_device_status_log_device_id_timestamp ON public.device_status_log (device_id, timestamp);
+ALTER TABLE public.device_status_log
+ADD COLUMN location GEOGRAPHY(POINT, 4326);
+
+COMMENT ON COLUMN public.device_status_log.location IS 'Geographic point representing the device''s location at the time of the log entry';
+
+CREATE INDEX idx_device_status_log_location ON public.device_status_log USING GIST (location);
+ALTER TABLE public.device_status_log
+DROP COLUMN last_known_address;
+
+COMMENT ON COLUMN public.device_status_log.last_known_address IS NULL;
+
+COMMENT ON TABLE public.device_status_log IS 'Timeseries log of device status changes';
+COMMENT ON COLUMN public.device_status_log.last_movement IS 'Timestamp of the last detected movement of the device';
+COMMENT ON COLUMN public.device_status_log.screen_up IS 'Indicates whether the device screen is facing up (true) or down (false)';
+COMMENT ON COLUMN public.device_status_log.speed IS 'Current speed of the device in mph';
+COMMENT ON COLUMN public.device_status_log.last_known_address IS 'JSON object containing the last known address details of the device';
+COMMENT ON COLUMN public.device_status_log.online IS 'Indicates whether the device is currently online (true) or offline (false)';
+
 CREATE TABLE public.devices (
 	id serial4 NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -316,6 +387,35 @@ CREATE TABLE public.devices (
 	CONSTRAINT devices_pkey PRIMARY KEY (id)
 );
 CREATE INDEX idx_devices_updated_at ON public.devices USING btree (updated_at);
+ALTER TABLE public.devices
+ADD COLUMN location GEOGRAPHY(POINT, 4326);
+
+COMMENT ON COLUMN public.devices.location IS 'Geographic point representing the device''s current location';
+
+CREATE INDEX idx_devices_location ON public.devices USING GIST (location);
+
+ALTER TABLE public.devices
+ADD COLUMN last_movement TIMESTAMPTZ,
+ADD COLUMN screen_up BOOLEAN;
+
+COMMENT ON COLUMN public.devices.last_movement IS 'Timestamp of the last detected movement of the device';
+COMMENT ON COLUMN public.devices.screen_up IS 'Indicates whether the device screen is facing up (true) or down (false)';
+
+ALTER TABLE public.devices
+ADD COLUMN speed FLOAT;
+
+COMMENT ON COLUMN public.devices.speed IS 'Current speed of the device in mph';
+
+ALTER TABLE public.devices
+ADD COLUMN last_known_address JSONB;
+
+COMMENT ON COLUMN public.devices.last_known_address IS 'JSON object containing the last known address details of the device';
+
+ALTER TABLE public.devices
+ADD COLUMN online BOOLEAN DEFAULT false;
+
+COMMENT ON COLUMN public.devices.online IS 'Indicates whether the device is currently online (true) or offline (false)';
+
 
 create trigger update_devices_updated_at before
 update
