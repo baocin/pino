@@ -98,3 +98,5 @@ subscriptions/handlers/sensor/__pycache__/
 subscriptions/tools/gotify/__pycache__/
 
 subscriptions/tools/gotify/.env
+
+libraries/whisper_streaming/
