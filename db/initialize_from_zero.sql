@@ -530,10 +530,12 @@ CREATE TABLE public.known_class_detections (
     distance float8 NOT NULL,
     source_data bytea NULL,
     source_data_type public.datatype NULL,
+	embedding public.vector NULL,
     metadata JSONB,
     CONSTRAINT known_class_detections_pkey PRIMARY KEY (id),
     CONSTRAINT known_class_detections_known_class_fkey FOREIGN KEY (known_class_id) REFERENCES public.known_classes(id)
 );
+ALTER TABLE public.known_class_detections ADD ground_truth bool NULL;
 
 CREATE INDEX idx_known_class_detections_known_class_id ON public.known_class_detections (known_class_id);
 CREATE INDEX idx_known_class_detections_source_data_type ON public.known_class_detections (source_data_type);
