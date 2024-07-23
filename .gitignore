@@ -122,3 +122,9 @@ libraries/.env
 realtime-injest/process_audio.log
 
 scheduled-injest/youtube/.env
+
+scheduled-injest/db_schema/__pycache__/
+
+scheduled-injest/train_zero_shot/.env
+
+scheduled-injest/train_zero_shot/__pycache__/
