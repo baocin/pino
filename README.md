@@ -12,11 +12,7 @@ To run pino on a moderately powerful modern GPU:
 - ~15 TFLOPS at FP16
 - ~7 TFLOPS at FP32
 
-## Folder Structure
-- `knowledge-base/`
-  - Contains the any static files that should be RAGed for the agent
-  - 
-
+## Folder Structure (in order of install/setup)
 - `db/`
   - timescaledb
   - start: `docker-compose up -d`
@@ -26,17 +22,16 @@ To run pino on a moderately powerful modern GPU:
   - Contains the docker-compose for the nominatim server
   - start: `docker-compose up -d`
   - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
-  
 
 - `android-app/`
   - Contains the Android application for sending off gps/audio/sensors/screenshots
   - 
 
-- `websocket-realtime-ingest/`
+- `realtime-ingest/`
   - For real-time sensor data ingestion from Android
   - 
 
-- `cron-able-ingest-scripts/`
+- `scheduled-injest/`
   - Scripts for periodic data ingestion
     - `twitter/` Twitter/X likes ingestion
     - 

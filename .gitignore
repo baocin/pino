@@ -1,40 +1,65 @@
 
-cron-able-ingest-scripts/tweet-scrape/scrape-env/
+scheduled-injest/tweet-scrape/scrape-env/
 
-cron-able-ingest-scripts/tweet-scrape/img/
+scheduled-injest/tweet-scrape/img/
 
-cron-able-ingest-scripts/scrape-env/
+scheduled-injest/scrape-env/
 
-cron-able-ingest-scripts/venv/
+scheduled-injest/venv/
 
-cron-able-ingest-scripts/__pycache__/
+scheduled-injest/__pycache__/
 
-cron-able-ingest-scripts/.env
+scheduled-injest/.env
 
-websocket-realtime-ingest/.env
+realtime-ingest/.env
 
-cron-able-ingest-scripts/tweet-scrape/.env
+scheduled-injest/tweet-scrape/.env
 
-cron-able-ingest-scripts/server_stats/.env
+scheduled-injest/server_stats/.env
 
-cron-able-ingest-scripts/server_stats/__pycache__/
+scheduled-injest/server_stats/__pycache__/
 
-cron-able-ingest-scripts/emails/.env
+scheduled-injest/emails/.env
 
-cron-able-ingest-scripts/emails/__pycache__/
+scheduled-injest/emails/__pycache__/
 
-cron-able-ingest-scripts/contacts/.env
+scheduled-injest/contacts/.env
 
-cron-able-ingest-scripts/contacts/__pycache__/
+scheduled-injest/contacts/__pycache__/
 
-cron-able-ingest-scripts/calendars/.env
+scheduled-injest/calendars/.env
 
-cron-able-ingest-scripts/calendars/__pycache__/
+scheduled-injest/calendars/__pycache__/
 
-cron-able-ingest-scripts/budget/.env
+scheduled-injest/budget/.env
 
-cron-able-ingest-scripts/budget/__pycache__/
+scheduled-injest/budget/__pycache__/
 
 knowledge-base/
 
 android-app/app/not-done/
+
+visualize/venv
+visualize/__pycache__/
+visualize/.ipynb_checkpoints/
+
+realtime-injest/venv/
+realtime-injest/.env
+
+visualize/.env
+
+visualize/projector_logs/
+
+realtime-injest/processors/__pycache__/
+
+realtime-injest/db/__pycache__/
+
+scheduled-injest/tweet-scrape/good/
+
+db/schema.sql
+
+scheduled-injest/tweet-scrape/tweets_with_data.json
+
+scheduled-injest/tweet-scrape/tweets.json
+
+scheduled-injest/tweet-scrape/x_session.json
