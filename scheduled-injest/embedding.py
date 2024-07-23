@@ -11,6 +11,6 @@ class EmbeddingService:
         embeddings = self.text_model.embed(texts)
         return [embedding.tolist() for embedding in embeddings]
 
-    def embed_image(self, image_paths: List[str]):
-        embeddings = self.image_model.embed(image_paths)
+    def embed_image(self, image_path: str):
+        embeddings = self.image_model.embed([image_path])
         return [embedding.tolist() for embedding in embeddings]

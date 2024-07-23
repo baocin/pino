@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity() {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     runOnUiThread {
-                        statusTextView.text = "Error??"
+                        statusTextView.text = e.message
                         AppState.isConnected = false
                     }
                 }

@@ -99,4 +99,6 @@ subscriptions/tools/gotify/__pycache__/
 
 subscriptions/tools/gotify/.env
 
+subscriptions/subscription_handler.log
+
 libraries/whisper_streaming/

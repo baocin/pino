@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# source scrape-env/bin/activate
+# source venv/bin/activate
 
 
 # Step 1: Install Homebrew (if not already installed)
@@ -19,14 +19,7 @@ fi
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     if [ -f /etc/debian_version ]; then
-        echo "Detected Debian-based distribution. Installing postgresql-16 and libpq-dev..."
-        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-        curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-        sudo apt update
-        sudo apt install -y postgresql-16 postgresql-contrib-16^C
-        sudo apt install -y libpq-dev
-        sudo apt-get install -y libevent-2.1-7 
-
+        echo "Detected Debian-based distribution."
         echo "Installing Python 3.11..."
         sudo apt install -y python3.11 python3.11-venv python3.11-dev
     fi
@@ -35,17 +28,27 @@ fi
 
 # Step 3: Create a virtual environment
 echo "Creating virtual environment..."
-python3.11 -m venv scrape-env
+python3.11 -m venv venv
 
 # Step 4: Activate the virtual environment
 echo "Activating virtual environment..."
-source scrape-env/bin/activate
+source venv/bin/activate
 
 # Step 5: Install required packages from requirements.txt
 pip install --upgrade pip
-pip install -r requirements.txt
 
-playwright install
+echo "Installing Jupyter Notebook..."
+pip install jupyter
+
+echo "Configuring Jupyter Notebook..."
+# Generate Jupyter Notebook configuration
+jupyter notebook --generate-config
+
+# Set a password for Jupyter Notebook
+echo "Please enter a password for Jupyter Notebook:"
+jupyter notebook password
+
+# pip install -r requirements.txt
 
 # Step 6: Done
-echo "Setup complete. You are now using the virtual environment."
+echo "Setup complete."
