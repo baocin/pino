@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Context</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">Current Context</h1>
+        
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Device Information</h2>
+            <p><strong>Device Name:</strong> {{ device_name }}</p>
+            <p><strong>Online:</strong> {{ "Yes" if online else "No" }}</p>
+            <p><strong>Speed:</strong> {{ speed if speed is not none else "Unknown" }} m/s</p>
+            <p><strong>Screen Up:</strong> {{ "Yes" if screen_up else "No" }}</p>
+            <p><strong>Last Movement:</strong> {{ last_movement }}</p>
+            <p><strong>Movement Type:</strong> {{ movement_type }}</p>
+            <p><strong>Minutes Since Last Movement:</strong> {{ minutes_since_last_movement|round(2) if minutes_since_last_movement is not none else "Unknown" }}</p>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Location Information</h2>
+            <p><strong>Last Known Location:</strong> {{ last_known_location }}</p>
+            <p><strong>Current Location:</strong> {{ current_location }}</p>
+            <p><strong>Distance from Last Known Location:</strong> {{ distance_from_last_known_location }}</p>
+            <p><strong>Street:</strong> {{ street }}</p>
+            <p><strong>City:</strong> {{ city }}</p>
+            <p><strong>Country:</strong> {{ country }}</p>
+            <p><strong>Location Changes (Last 24h):</strong> {{ location_changes_last_24h }}</p>
+            <p><strong>Visited Known Locations (Last 24h):</strong> {{ visited_known_locations_last_24h }}</p>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Activity Information</h2>
+            <p><strong>Emails Received (Last 24h):</strong> {{ emails_received_last_24h }}</p>
+            <p><strong>Upcoming Events (Next 24h):</strong> {{ upcoming_events_next_24h }}</p>
+            <p><strong>Upcoming Event Titles:</strong> {{ upcoming_event_titles }}</p>
+            <p><strong>Last Brushed Teeth:</strong> {{ last_brushed_teeth }}</p>
+            <p><strong>Brushed Teeth (Last 24h):</strong> {{ "Yes" if brushed_teeth_last_24h else "No" }}</p>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">Relevant Events</h2>
+            <p><strong>Event Based on Known Location:</strong> {{ relevant_calendar_event_based_on_known_location }}</p>
+            <p><strong>Events Based on Time:</strong> {{ relevant_calendar_event_based_on_time }}</p>
+        </div>
+    </div>
+</body>
+</html>

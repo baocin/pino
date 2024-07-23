@@ -177,7 +177,6 @@ class DB:
         VALUES (%s, %s, %s);
         """
         self.execute(query, (timestamp, image_data, device_id))
-
     def execute_query(self, query, params=None):
         def run_query():
             cursor = self.connection.cursor()
@@ -185,9 +184,14 @@ class DB:
                 # logging.info(f"Executing query: {query} with params: {params}")
                 cursor.execute(query, params)
                 self.connection.commit()
-                return cursor.fetchall()
+                try:
+                    return cursor.fetchall()
+                except psycopg2.ProgrammingError:
+                    # Query was not a SELECT, so no results to fetch
+                    return None
             except psycopg2.Error as e:
-                logging.error(f"The error '{e}' occurred")
+                if str(e) != 'no results to fetch':
+                    logging.error(f"The error '{e}' occurred")
                 self.connection.rollback()
             finally:
                 cursor.close()
@@ -200,15 +204,19 @@ class DB:
         try:
             cursor = self.connection.cursor()
             cursor.execute(query, params)
-            result = cursor.fetchall()
-            return result
+            try:
+                result = cursor.fetchall()
+                return result
+            except psycopg2.ProgrammingError:
+                # Query was not a SELECT, so no results to fetch
+                return None
         except psycopg2.Error as e:
-            print(f"The error '{e}' occurred")
+            if str(e) != 'no results to fetch':
+                print(f"The error '{e}' occurred")
             self.connection.rollback()
             return None
         finally:
             cursor.close()
-                
     def close_connection(self):
         if self.connection:
             self.connection.close()
