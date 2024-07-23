@@ -13,21 +13,23 @@ To run pino on a moderately powerful modern GPU:
 - ~7 TFLOPS at FP32
 
 ## Folder Structure (in order of install/setup)
-- `db/`
-  - timescaledb - for storing timeseries data
-  - start: `docker-compose up -d`
-  - data volume: `/var/lib/docker/volumes/db_timescaledb-data/_data`
+- docker containers:
+  - ![Docker Containers](./readme_assets/ctop.png)
+  - `db/`
+    - timescaledb - for storing timeseries data
+    - start: `docker-compose up -d`
+    - data volume: `/var/lib/docker/volumes/db_timescaledb-data/_data`
 
-- `maps/`
-  - Contains the docker-compose for the nominatim server
-  - start: `docker-compose up -d`
-  - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
-  - Provides easy geocoding, reverse geocoding, osm querying
+  - `maps/`
+    - Contains the docker-compose for the nominatim server
+    - start: `docker-compose up -d`
+    - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
+    - Provides easy geocoding, reverse geocoding, osm querying
 
-- `gotify/`
-  - For easy push notifications to android/ios
-  - start: `docker-compose up -d`
-  - data volume: `/var/lib/docker/volumes/gotify_gotify_data/_data`
+  - `gotify/`
+    - For easy push notifications to android/ios
+    - start: `docker-compose up -d`
+    - data volume: `/var/lib/docker/volumes/gotify_gotify_data/_data`
 
 - `android-app/`
   - Contains the Android application for sending off data
