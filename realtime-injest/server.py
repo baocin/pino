@@ -8,22 +8,19 @@ from datetime import datetime, timedelta
 import logging
 import json
 import shutil
-import wave
-import struct
-import base64
-import heapq
-import hashlib
 import os
-# import zstd
+import sys
+import base64
 from collections import deque
 from dotenv import load_dotenv
-# from processors.process_heap import QueueProcessor
-from db.postgres import PostgresInterface
 from processors.process_audio import AudioProcessor
 from processors.process_screenshot import ScreenshotProcessor
 from processors.process_photo import PhotoProcessor
 # from injest_mail import EmailInjest
 # from injest_server_stats import SystemStatsRecorder
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from libraries.db import DB
 
 load_dotenv()
 
@@ -37,13 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db = PostgresInterface(
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST", "localhost"),
-    port=int(os.getenv("DB_PORT", 5432))
-)
+db = DB()
 db.connect()
 
 logging.basicConfig(level=logging.INFO)
@@ -82,13 +73,10 @@ class MotionEventData(BaseModel):
 
 class NotificationData(BaseModel):
     data: str
-    
-    
 
 audio_processor = AudioProcessor(db)
 screenshot_processor = ScreenshotProcessor(db)
 photo_processor = PhotoProcessor(db)
-
 
 packet_tally = {
         "audio": 0,
@@ -112,7 +100,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            print(data[:100])
+            # print(data[:100])
             messages = json.loads(data)
                 
             if not isinstance(messages, list):
@@ -125,9 +113,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 message_type = message["type"]
                 device_id = message["device_id"]
                 message_id = message["message_id"]
-                
-                # print(message_type, device_id, message_id)
-                
+                                
                 packet_tally[message_type] = packet_tally.get(message_type, 0) + 1
             
                 if message_type == "audio":
@@ -138,6 +124,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif message_type == "sensor":
                     sensor_data = SensorData(**message.get("data"))
                     db.insert_sensor_data(sensor_data.sensorType, sensor_data.x, sensor_data.y, sensor_data.z, device_id)
+                    
                 elif message_type == "manual_photo":
                     await photo_processor.handle_photo_message(message.get("data"), websocket, device_id)
                 elif message_type == "screenshot":
@@ -151,7 +138,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "status": 200,
                 "message_type": message_type
             }
-            logger.info(f"Response sent: {response}")
+            # logger.info(f"Response sent: {response}")
             await websocket.send_json(response)
             
             # os.system('cls' if os.name == 'nt' else 'clear')
@@ -204,6 +191,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/heartbeat")
 async def heartbeat():
+    # return JSONResponse(status_code=200, content={"status": "online"})
     try:
         # Check database connection
         db.execute_query("SELECT 1")
@@ -218,6 +206,102 @@ async def heartbeat():
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": f"Error: {str(e)}"})
     return JSONResponse(status_code=200, content={"status": "online"})
+
+@app.get("/get-detection-audio/{known_class_detection_id}")
+async def get_detection_audio(known_class_detection_id: str):
+    try:
+        # Query the database to get the source_data for the given id
+        query = """
+        SELECT source_data
+        FROM known_class_detections
+        WHERE id = %s AND source_data_type = 'audio'
+        """
+        result = db.sync_query(query, (known_class_detection_id,))
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Detection not found or not audio type")
+
+        audio_data = result[0][0]
+
+        # Convert the binary audio data to base64
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+
+        return JSONResponse(content={"audio_base64": audio_base64})
+
+    except Exception as e:
+        logger.error(f"Error retrieving audio data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@app.get("/verify-detection/{known_class_detection_id}")
+async def verify_detection(request: Request, known_class_detection_id: str, name: str = None, audio_url: str = None):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Detection</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <script>
+            async function updateGroundTruth(value) {{
+                const response = await fetch('/update-ground-truth/{known_class_detection_id}/' + value, {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
+                        known_class_detection_id: '{known_class_detection_id}',
+                        ground_truth: value
+                    }})
+                }});
+                if (response.ok) {{
+                    alert('Ground truth updated successfully');
+                }} else {{
+                    alert('Failed to update ground truth');
+                }}
+            }}
+
+            async function fetchAndPlayAudio() {{
+                const response = await fetch('{audio_url}');
+                const data = await response.json();
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = 'data:audio/wav;base64,' + data.audio_base64;
+                audioPlayer.style.display = 'block';
+            }}
+        </script>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+        <div class="bg-white p-8 rounded shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Verify Detection</h2>
+            {('<p class="mb-4">Name: ' + name + '</p>') if name else ''}
+            {('<div class="mb-4"><button onclick="fetchAndPlayAudio()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Load Audio</button></div>') if audio_url else ''}
+            <audio id="audioPlayer" controls style="display: none;" class="mb-4"></audio>
+            <div class="flex space-x-4">
+                <button onclick="updateGroundTruth(true)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                    True
+                </button>
+                <button onclick="updateGroundTruth(false)" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+                    False
+                </button>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+@app.post("/update-ground-truth/{known_class_detection_id}/{ground_truth}")
+async def update_ground_truth(known_class_detection_id: str, ground_truth: bool):
+    try:
+        query = """
+        UPDATE known_class_detections
+        SET ground_truth = %s
+        WHERE id = %s
+        """
+        db.execute_query(query, (ground_truth, known_class_detection_id))
+        return JSONResponse(status_code=200, content={"message": "Ground truth updated successfully"})
+    except Exception as e:
+        logger.error(f"Error updating ground truth: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error updating ground truth")
 
 
 @app.get("/latest-updates")
@@ -391,5 +475,6 @@ async def gps_map(start_date: str = None, end_date: str = None, days: int = 1):
     
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    # , log_level="warning"
+    uvicorn.run(app, host="0.0.0.0", port=os.getenv("SERVER_PORT"))
     #443, ssl_keyfile="path/to/your/keyfile.pem", ssl_certfile="path/to/your/certfile.pem")

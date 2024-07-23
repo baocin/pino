@@ -106,3 +106,19 @@ realtime-injest/whisper_cache/
 talk/venv/
 
 libraries/whisper_streaming/
+
+libraries/__pycache__/
+
+subscriptions/handlers/email/__pycache__/
+
+talk/Hermes-2-Pro-Mistral-7B.Q4_K_Maa.gguf
+
+libraries/gotify/__pycache__/
+
+libraries/gotify/.env
+
+libraries/.env
+
+realtime-injest/process_audio.log
+
+scheduled-injest/youtube/.env

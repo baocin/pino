@@ -10,4 +10,4 @@ echo $DB_NAME
 
 PGPASSWORD=$DB_PASSWORD pg_dump -h $DB_HOST -U $DB_USER -s --no-owner --no-privileges --no-comments $DB_NAME > schema_backup.sql
 
-echo "Database schema exported to schema.sql"
+echo "Database schema exported to schema_backup.sql"

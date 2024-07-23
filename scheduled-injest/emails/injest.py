@@ -46,15 +46,17 @@ class EmailInjest:
 
             if unseen_messages[0] != b'':
                 logging.info(f"unseen_messages: {unseen_messages}")
-            if all_messages[0] != b'':
-                logging.info(f"all_messages: {all_messages}")
+            # if all_messages[0] != b'':
+            #     logging.info(f"all_messages: {all_messages}")
 
             # Combine and deduplicate email IDs
             combined_messages = list(set(unseen_messages[0].split() + all_messages[0].split()))
             messages = (status, combined_messages)
+
+            logging.info(f"combined_messages: {combined_messages}")
             
             # Convert messages to a list of email IDs
-            email_ids = messages[0].split()
+            email_ids = unseen_messages[0].split()
             logging.info(f"email_ids len: {len(email_ids)}")
 
             # Query for the highest pull_id

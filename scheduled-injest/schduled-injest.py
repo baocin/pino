@@ -145,20 +145,25 @@ if __name__ == "__main__":
     # record_server_stats_task()
     # fetch_email_task()
     # fetch_calendar_task()
+    # calendar_injest = CalendarInjest(DB)
+    # calendar_injest.fetch_all_calendar_events()
     # fetch_budget_task()
     # asyncio.run(fetch_tweets_task())
     # asyncio.run(fetch_github_task())
 
     # Schedule the tasks
-    # manager.schedule_task(12, 'hours', fetch_budget_task, manager.fetch_budget_lock)
-    # manager.schedule_task(15, 'minutes', fetch_email_task, manager.fetch_email_lock)
-    # manager.schedule_task(30, 'minutes', fetch_calendar_task, manager.fetch_calendar_lock)
-    # manager.schedule_task(1, 'minutes', record_server_stats_task, manager.record_server_stats_lock)
-    # manager.schedule_task(1, 'hours', fetch_contacts_task, manager.fetch_contacts_lock)
-    # manager.schedule_task(1, 'hours', run_async_task, manager.fetch_tweets_lock, fetch_tweets_task)
-    # manager.schedule_task(6, 'hours', run_async_task, manager.fetch_github_lock, fetch_github_task)
+    manager.schedule_task(12, 'hours', fetch_budget_task, manager.fetch_budget_lock)
+    manager.schedule_task(5, 'minutes', fetch_email_task, manager.fetch_email_lock)
+    manager.schedule_task(15, 'minutes', fetch_calendar_task, manager.fetch_calendar_lock)
+    manager.schedule_task(1, 'minutes', record_server_stats_task, manager.record_server_stats_lock)
+    manager.schedule_task(1, 'hours', fetch_contacts_task, manager.fetch_contacts_lock)
+    manager.schedule_task(12, 'hours', run_async_task, manager.fetch_tweets_lock, fetch_tweets_task)
+    manager.schedule_task(12, 'hours', run_async_task, manager.fetch_github_lock, fetch_github_task)
 
-    run_async_task(fetch_tweets_task, manager.fetch_tweets_lock)
+    # run_async_task(fetch_calendar_task, manager.fetch_calendar_lock)
+
+    # run_async_task(fetch_tweets_task, manager.fetch_tweets_lock)
+    # run_async_task(fetch_github_task, manager.fetch_github_lock)
 
     # Start the task manager
     manager.start()

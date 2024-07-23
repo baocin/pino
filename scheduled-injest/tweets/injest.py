@@ -129,21 +129,22 @@ class TweetInjest:
                 await page.wait_for_load_state("networkidle", timeout=2000)
             except Exception:
                 return None
-
-            try:
-                await page.wait_for_selector("article[data-testid='tweet']", timeout=2000)
-            except Exception:
-                return {
-                    "code": 404,
-                    "message": "Tweet not found"
-                }
+            
+            # Check if the page contains the text indicating the tweet doesn't exist
+            if await page.locator("text=Hmm...this page doesn’t exist. Try searching for something else.").count() > 0:
+                logging.info(f"Tweet does not exist: {url}")
+                return None
 
             tweet_id = url.split("/")[-1]
             try:
-                image_data = await page.locator('[data-testid="tweet"]').screenshot()
+                image_data = await page.locator('[data-testid="tweet"]').screenshot(timeout=300)
             except Exception as e:
-                logging.error(f"Screenshot failed: {e}")
-                return None
+                logging.error(f"Screenshot failed: {e} - {url}")
+                try:
+                    image_data = await page.locator('[data-testid="primaryColumn"]').screenshot(timeout=300)
+                except Exception as e:
+                    logging.error(f"Screenshot of primaryColumn also failed: {e} - {url}")
+                    return None
 
             tweet_data = await self.collect_background_calls(_xhr_calls)
             tweet_data['image_data'] = image_data
@@ -272,7 +273,7 @@ class TweetInjest:
         """
         await page.evaluate(js_code)
         no_new_tweets_count = 0
-        wait_for_x_tweets = 50
+        wait_for_x_tweets = 100
         while True:
             await page.evaluate("() => scanAndExtract()")
             all_tweets = await page.evaluate("() => getSavedTweets()")

@@ -1,29 +1,55 @@
+import os
 import psycopg2
-from psycopg2 import sql
-import threading
+import logging
+import time
 import json
+from dotenv import load_dotenv
+import threading
 
-class PostgresInterface:
-    def __init__(self, dbname, user, password, host='localhost', port=5432):
-        self.dbname = dbname
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
-        self.connection = None
+class DB:
+    def __init__(self):
+        load_dotenv()
+        self.connection = self.connect()
+        self.cursor = self.connection.cursor()
 
-    def connect(self):
+    @staticmethod
+    def connect():
+        load_dotenv()
         try:
-            self.connection = psycopg2.connect(
-                dbname=self.dbname,
-                user=self.user,
-                password=self.password,
-                host=self.host,
-                port=self.port
+            connection = psycopg2.connect(
+                dbname=os.getenv("DB_NAME"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASSWORD"),
+                host=os.getenv("DB_HOST"),
+                port=os.getenv("DB_PORT")
             )
-            print("Connection to PostgreSQL DB successful")
+            return connection
         except Exception as e:
-            print(f"The error '{e}' occurred")
+            logging.error(f"Error connecting to the database: {e}")
+            raise
+
+    @staticmethod
+    def initialize_db():
+        connection = DB.connect()
+        cursor = connection.cursor()
+        # try:
+        #     with open('../db/initialize_from_zero.sql', 'r') as sql_file:
+        #         sql_commands = sql_file.read()
+        #         cursor.execute(sql_commands)
+        #     logging.info("Created table documents if not exists.")
+        #     connection.commit()
+        # except Exception as e:
+        #     logging.error(f"Error initializing database: {e}")
+
+        cursor.close()
+        logging.info("Database initialization complete.")
+        return connection
+
+    def query(self, query, params=None):
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
 
     def execute(self, query, params=None):
         def run_query():
@@ -42,6 +68,109 @@ class PostgresInterface:
         thread = threading.Thread(target=run_query)
         thread.start()
 
+
+    def poll_query(self, query, interval, callback, trigger_on_all_queries=False):
+        self._cancel_polling = False
+        self._polling_thread = threading.Thread(target=self._polling_loop, args=(query, interval, callback, trigger_on_all_queries))
+        self._polling_thread.start()
+
+    def _polling_loop(self, query, interval, callback, trigger_on_all_queries):
+        previous_result = None
+        first_fetch = True
+        
+        while not self._cancel_polling:
+            try:
+                cursor = self.connection.cursor()
+                cursor.execute(query)
+                result = cursor.fetchall()
+                
+                if first_fetch:
+                    first_fetch = False
+                else:
+                    if trigger_on_all_queries:
+                        callback(result)
+                    else:
+                        differences = [row for row in result if row not in previous_result]
+                        if differences:
+                            callback(differences)
+                
+                if result is not None:
+                    previous_result = result
+
+                time.sleep(interval)
+            except Exception as e:
+                logging.error(f"Error executing query: {query} {e}")
+                break
+            finally:
+                cursor.close()
+
+    def cancel_polling(self):
+        self._cancel_polling = True
+        if self._polling_thread.is_alive():
+            self._polling_thread.join()
+
+
+    def pgvector_similarity_search(self, table_name, vector_column, query_vector, columns='*', top_k=10, max_retries=3):
+        """
+        Perform a similarity search using pgvector with retry logic.
+
+        :param table_name: Name of the table to search.
+        :param vector_column: Name of the column containing the vectors.
+        :param query_vector: The query vector to compare against.
+        :param columns: Columns to select in the query (default is '*' for all columns).
+        :param top_k: Number of top similar results to return.
+        :param max_retries: Maximum number of retry attempts.
+        :return: List of tuples containing the top_k similar results.
+        """
+        retries = 0
+        while retries < max_retries:
+            try:
+                # Convert the query vector to a string format suitable for SQL
+                query_vector_str = ','.join(map(str, query_vector))
+                
+                # Construct the SQL query
+                sql_query = f"""
+                    SELECT {columns}, {vector_column} <-> '[{query_vector_str}]' AS similarity
+                    FROM {table_name}
+                    ORDER BY similarity
+                    LIMIT {top_k};
+                """
+                
+                # Create a new cursor for this operation
+                with self.connection.cursor() as cursor:
+                    # Execute the query
+                    cursor.execute(sql_query)
+                    results = cursor.fetchall()
+                
+                return results
+            except Exception as e:
+                retries += 1
+                logging.error(f"Error performing similarity search (attempt {retries}/{max_retries}): {e}")
+                self.connection.rollback()  # Rollback the transaction
+                if retries == max_retries:
+                    logging.error("Max retries reached. Returning empty list.")
+                    return []
+                time.sleep(1)  # Wait for 1 second before retrying
+
+    def get_known_classes(self, type='audio'):
+        result = self.query("SELECT name, embedding, radius_threshold, embedded_data, id FROM known_classes WHERE datatype = %s", (type,))
+        
+        known_classes = []
+        for row in result:
+            if row[1]:  # Check if embedding is not None
+                embedding = [float(x) for x in row[1][1:-1].split(',')]  # Remove brackets and split
+            else:
+                embedding = None
+            known_classes.append({
+                'name': row[0],
+                'embedding': embedding,
+                'radius_threshold': row[2],
+                'embedded_data': row[3],
+                'id': row[4]
+            })
+        
+        return known_classes
+    
     def insert_screenshot_data(self, timestamp, image_data, device_id):
         query = """
         INSERT INTO screenshot_data (timestamp, image_data, device_id)
@@ -53,16 +182,19 @@ class PostgresInterface:
         def run_query():
             cursor = self.connection.cursor()
             try:
+                # logging.info(f"Executing query: {query} with params: {params}")
                 cursor.execute(query, params)
                 self.connection.commit()
+                return cursor.fetchall()
             except psycopg2.Error as e:
-                print(f"The error '{e}' occurred")
+                logging.error(f"The error '{e}' occurred")
                 self.connection.rollback()
             finally:
                 cursor.close()
 
         thread = threading.Thread(target=run_query)
         thread.start()
+            
             
     def sync_query(self, query, params=None):
         try:
