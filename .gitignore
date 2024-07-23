@@ -101,4 +101,8 @@ subscriptions/tools/gotify/.env
 
 subscriptions/subscription_handler.log
 
+subscriptions/handlers/__pycache__/
+realtime-injest/whisper_cache/
+talk/venv/
+
 libraries/whisper_streaming/
