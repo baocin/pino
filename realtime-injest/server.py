@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any
 from pydantic import BaseModel
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import json
 import shutil
@@ -374,25 +374,26 @@ async def get_current_context(request: Request, json_only: bool = False):
             'street': result[0][10],
             'city': result[0][11],
             'country': result[0][12],
-            # 'location_changes_last_24h': int(result[0][13]),
+            'location_changes_last_24h': int(result[0][13]) if result[0][13] is not None else 0,
             'visited_known_locations_last_24h': result[0][14],
-            'emails_received_last_24h': int(result[0][15]),
-            'upcoming_events_next_24h': int(result[0][16]),
+            'emails_received_last_24h': int(result[0][15]) if result[0][15] is not None else 0,
+            'upcoming_events_next_24h': int(result[0][16]) if result[0][16] is not None else 0,
             'upcoming_event_titles': result[0][17],
             'last_brushed_teeth': result[0][18].isoformat() if result[0][18] else None,
             'brushed_teeth_last_24h': result[0][19],
             'relevant_calendar_event_based_on_known_location': result[0][20],
+            'last_brushed_teeth_relative': f"{int((datetime.now(timezone.utc) - result[0][18]).total_seconds() / 3600)} hours ago" if result[0][18] else None,
             'relevant_calendar_event_based_on_time': result[0][21]
         }
+
         if json_only:
             return JSONResponse(content=context)
         
-        context.pop('current_location', None)
-
         return templates.TemplateResponse("current_context.html", {"request": request, **context})
+    
     except Exception as e:
         logger.error(f"Error fetching current context: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error fetching current context")
+        raise HTTPException(status_code=500, detail=f"Error fetching current context: {str(e)}")
     
 @app.get("/latest-updates")
 async def get_latest_updates():

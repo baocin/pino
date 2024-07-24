@@ -31,7 +31,11 @@ def send_gotify_message(title, message, priority=5, extras=None):
         'Content-Type': 'application/json'
     }
     
-    response = requests.post(url, data=json.dumps(data), headers=headers)
+    try:
+        response = requests.post(url, data=json.dumps(data), headers=headers)
+    except requests.RequestException as e:
+        print(f"Error sending Gotify message: {e}")
+        return None
     
     log_gotify_message(title, message, priority, response.status_code, extras)
     
