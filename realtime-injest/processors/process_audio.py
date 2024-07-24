@@ -44,7 +44,6 @@ class AudioProcessor:
         self.db = db_interface
 
         self.known_classes = self.db.get_known_classes(type='audio')
-        logging.info(f"Known classes: {self.known_classes}")
 
         self.audio_start_time = None
         self.sample_rate = 8000
@@ -120,25 +119,38 @@ class AudioProcessor:
                     )
                     inserted_id = returned_row[0][0]
 
-                    # logger.info(f"Similarity to {known_class['name']}: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}")
-                    extras = {
-                        "client::notification": {
-                            "click": {
-                                "url": f":{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+
+                    try:
+                        extras = {
+                            "client::display": {
+                                "contentType": "text/plain"
+                            },
+                            "client::notification": {
+                                "click": {
+                                    # "url": "http://steele.red"
+                                    "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}",
+                                }
                             }
                         }
-                    }
-                    send_gotify_message(
-                        title=f"Detected {known_class['name']}", 
-                        message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
-                        extras=extras,
-                        priority=10
-                    )
+                        logger.info(f"Notification extras: {extras}")
+                        send_gotify_message(
+                            title=f"Detected {known_class['name']}", 
+                            message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
+                            extras=extras,
+                            priority=10
+                        )
+                    except Exception as e:
+                        logger.error(f"Error sending gotify message: {str(e)}")
+
+                    # logger.info(f"Similarity to {known_class['name']}: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}")
+                    # http://pino.steele.red:8081/verify-detection/1?name=electric_toothbrush&audio_url=http://pino.steele.red:8081/get-detection-audio/1
                 except Exception as e:
                     logger.error(f"Error inserting known class detection: {str(e)}")
+
             # Delete the audio classification buffer file
             if os.path.exists(audio_path):
                 os.remove(audio_path)
+
 
     async def handle_audio_message(self, message, websocket, device_id):
         audio_data_base64 = message.get("data")
@@ -147,6 +159,12 @@ class AudioProcessor:
             raise HTTPException(status_code=422, detail="Unprocessable Entity: No audio data received")
         self.audio_start_time = datetime.datetime.now().isoformat()
         audio_data = self.decode_and_decompress_audio(audio_data_base64)
+        
+        # Long term storage of audio
+        self.today_wav_file_path = self.calculate_date_path(source=device_id)
+        self.append_audio_to_file(audio_data, file_path=self.today_wav_file_path)
+        file_length = os.path.getsize(self.today_wav_file_path) - 44
+        self.write_wav_header(self.today_wav_file_path, self.sample_rate, self.sample_width * 8, 1, file_length)
 
         # Create the audio classification buffer file if it doesn't exist
         if not os.path.exists(self.audio_classification_buffer_path):
@@ -168,11 +186,6 @@ class AudioProcessor:
                     asyncio.create_task(self.detect_known_audio_classes(self.audio_classification_buffer_path))
                 # logger.info("Classification task created, releasing lock")
 
-        # Long term storage of audio
-        self.today_wav_file_path = self.calculate_date_path(source=device_id)
-        self.append_audio_to_file(audio_data, file_path=self.today_wav_file_path)
-        file_length = os.path.getsize(self.today_wav_file_path) - 44
-        self.write_wav_header(self.today_wav_file_path, self.sample_rate, self.sample_width * 8, 1, file_length)
     
     def embed_audio(self, audio_data, sample_rate):
         inputs = self.clap_processor(audios=audio_data, return_tensors="pt", sampling_rate=sample_rate)
@@ -215,6 +228,14 @@ class AudioProcessor:
         return decompressed_audio_data
 
     def append_audio_to_file(self, audio_data, file_path):
+        if not os.path.exists(file_path):
+            # Create a new WAV file with header if it doesn't exist
+            with wave.open(file_path, 'wb') as wf:
+                wf.setnchannels(self.channels)
+                wf.setsampwidth(self.sample_width)
+                wf.setframerate(self.sample_rate)
+                wf.writeframes(b'')  # Write empty frames to create the header
+
         with open(file_path, "ab") as audio_file:
             audio_file.write(audio_data)
 

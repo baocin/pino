@@ -187,7 +187,6 @@ async def heartbeat():
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": f"Error: {str(e)}"})
     return JSONResponse(status_code=200, content={"status": "online"})
-
 @app.get("/get-detection-audio/{known_class_detection_id}")
 async def get_detection_audio(known_class_detection_id: str):
     try:
@@ -204,15 +203,38 @@ async def get_detection_audio(known_class_detection_id: str):
 
         audio_data = result[0][0]
 
-        # Convert the binary audio data to base64
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+        # Add WAVE RIFF header
+        sample_rate = 48000  # Assuming 48kHz sample rate, adjust if different
+        channels = 1  # Assuming mono, adjust if stereo
+        bits_per_sample = 16  # Assuming 16-bit audio, adjust if different
+        import struct
+        header = struct.pack('<4sI4s4sIHHIIHH4sI',
+            b'RIFF',
+            36 + len(audio_data),
+            b'WAVE',
+            b'fmt ',
+            16,
+            1,
+            channels,
+            sample_rate,
+            sample_rate * channels * bits_per_sample // 8,
+            channels * bits_per_sample // 8,
+            bits_per_sample,
+            b'data',
+            len(audio_data)
+        )
+
+        # Combine header and audio data
+        wav_data = header + audio_data
+
+        # Convert the WAV data to base64
+        audio_base64 = base64.b64encode(wav_data).decode('utf-8')
 
         return JSONResponse(content={"audio_base64": audio_base64})
 
     except Exception as e:
         logger.error(f"Error retrieving audio data: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
 
 @app.get("/verify-detection/{known_class_detection_id}")
 async def verify_detection(request: Request, known_class_detection_id: str, name: str = None, audio_url: str = None):
