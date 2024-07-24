@@ -129,3 +129,31 @@ scheduled-injest/train_zero_shot/.env
 
 scheduled-injest/train_zero_shot/__pycache__/
 
+
+android-app/app/build/
+
+android-app/app/src/.DS_Store
+
+android-app/.DS_Store
+
+android-app/.gradle/
+
+android-app/.idea/
+
+android-app/app/src/main/.DS_Store
+
+android-app/app/src/main/res/.DS_Store
+
+android-app/app/src/main/java/red/steele/injest/.env
+
+android-app/app/src/main/java/red/steele/injest/.DS_Store
+
+android-app/app/src/main/java/red/steele/.DS_Store
+
+db/.env
+
+db/timescaledb.env
+
+maps/.env
+
+maps/raw_docker_cli
