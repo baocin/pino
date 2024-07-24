@@ -1,13 +1,29 @@
 # pino - your friendly background helper agent
 ![image](https://github.com/baocin/pino/assets/5463986/686825fe-1422-4693-a1f1-8ca19c9e4be1)
 
-An early prototype for a behind-the-scenes autonomous agent that helps the user by suggesting real-time information when appropriate.
+## Goal
+An early prototype for a behind-the-scenes autonomous agent that helps the user by suggesting real-time information when appropriate. Think (consentual) behavioral modification, second-order conditioning, and subtle nudges towards desired outcomes. Pino aims to be a personal AI assistant that learns from your behavior and environment to provide timely, relevant suggestions and insights.
+
+Key features:
+- Real-time data collection and analysis from various sensors
+- Contextual awareness through machine learning models
+- Personalized recommendations based on user patterns and preferences
+- Local-first, no cloud, no tracking
+
+Pino is designed to seamlessly integrate into your daily life, offering gentle guidance and support to help you achieve your goals and improve your overall well-being. Whether it's reminding you to take breaks, suggesting healthier habits, or providing relevant information based on your location and activities, Pino is your friendly AI companion working quietly in the background to enhance your life experience.
 
 **Disclaimer: This project is currently a work in progress. Many features are experimental and may not be fully functional.**
 
-## Project Goal
+## How It Works
 
-To run pino on a moderately powerful modern GPU:
+1. Monitor user activities (with permission) from as many sources as possible
+2. Analyze context and user needs
+3. Generate relevant suggestions
+4. Act on the information
+   1. Present information at appropriate times to the user (Think AR Glasses like the [Frame](https://brilliant.xyz/products/frame))
+   2. Run tools to benefit the user
+
+## Hardware
 - Target: NVIDIA GeForce RTX 2070 (8GB) or equivalent
 - ~15 TFLOPS at FP16
 - ~7 TFLOPS at FP32
@@ -30,27 +46,6 @@ To run pino on a moderately powerful modern GPU:
     - For easy push notifications to android/ios
     - start: `docker-compose up -d`
     - data volume: `/var/lib/docker/volumes/gotify_gotify_data/_data`
-
-- `android-app/`
-  - Contains the Android application for sending off data
-  - Pushes:
-    - audio
-    - gps
-    - sensors (accelerometer, gyroscope, magnetometer)
-    - screenshots
-  - Shows latency (each websocket packet is acknowledged by the server via a message_id)
-  - ![App screenshot showing graphs of latency](./readme_assets/app.png)
-
-- `realtime-ingest/`
-  - For real-time data ingestion from Android
-  - Runs some lightweight classification (audio classification)
-  - Serves endpoints for correcting misclassifications
-    - ![](./readme_assets/label_detection.png)
-  - Serves 'frontends'
-    - `/current_context`
-      - ![Current Context Example](./readme_assets/current_context.png)
-    - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
-      - ![GPS Map Example](./readme_assets/gps-map.png) 
 
 - `scheduled-injest/`
   - Scripts for periodic data ingestion (and embedding)
@@ -76,19 +71,27 @@ To run pino on a moderately powerful modern GPU:
     - Device connection: Monitors device online status
     - Emails: alert user via gotify when new emails come in
 
-- **Background Operation**: Pino runs unobtrusively in the background.
-- **Real-time Suggestions**: Provides timely and relevant information based on current context.
-- **Autonomous Decision Making**: [wip] Intelligently decides when to offer assistance.
-- **User-Friendly Interface**: All in a totally work-in-progress state.
+- `android-app/`
+  - Contains the Android application for sending off data
+  - Pushes:
+    - audio
+    - gps
+    - sensors (accelerometer, gyroscope, magnetometer)
+    - screenshots
+  - Shows latency (each websocket packet is acknowledged by the server via a message_id)
+  - ![App screenshot showing graphs of latency](./readme_assets/app.png)
 
-## How It Works
+- `realtime-ingest/`
+  - For real-time data ingestion from Android
+  - Runs some lightweight classification (audio classification)
+  - Serves endpoints for correcting misclassifications
+    - ![](./readme_assets/label_detection.png)
+  - Serves 'frontends'
+    - `/current_context`
+      - ![Current Context Example](./readme_assets/current_context.png)
+    - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
+      - ![GPS Map Example](./readme_assets/gps-map.png) 
 
-1. Monitor user activities (with permission) from as many sources as possible
-2. Analyze context and user needs
-3. Generate relevant suggestions
-4. Act on the information
-   1. Present information at appropriate times to the user (Think AR Glasses like the [Frame](https://brilliant.xyz/products/frame))
-   2. Run tools to benefit the user
 
 ## Getting Started
 
