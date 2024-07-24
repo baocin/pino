@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: nominatim
+    shm_size: '1gb'
+    env_file:
+      - ./.env
+    environment:
+      PBF_URL: https://download.geofabrik.de/north-america/us-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/north-america/us-updates/
+      IMPORT_WIKIPEDIA: 'false'
+      NOMINATIM_PASSWORD: ${NOMINATIM_PASSWORD}
+    volumes:
+      - nominatim-data:/var/lib/postgresql/14/main
+    ports:
+      - "8080:8080"
+
+volumes:
+  nominatim-data:
+    driver: local

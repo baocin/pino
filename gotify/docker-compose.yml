@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  gotify:
+    image: gotify/server
+    ports:
+      - 9090:80
+    env_file:
+      - .env
+    volumes:
+      - gotify_data:/app/data
+
+volumes:
+  gotify_data:
+    driver: local

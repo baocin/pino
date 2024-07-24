@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    env_file:
+      - ./timescaledb.env
+    image: timescale/timescaledb-ha:pg16
+    container_name: timescaledb_container
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/home/postgres/pgdata/data
+    restart: unless-stopped
+
+volumes:
+  timescaledb-data:
+    driver: local
