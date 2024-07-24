@@ -48,7 +48,7 @@ To run pino on a moderately powerful modern GPU:
     - ![](./readme_assets/label_detection.png)
   - Serves 'frontends'
     - `/current_context`
-      - ![Current Context Example](./readme_assets/current-context.png)
+      - ![Current Context Example](./readme_assets/current_context.png)
     - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
       - ![GPS Map Example](./readme_assets/gps-map.png) 
 
