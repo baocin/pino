@@ -292,3 +292,7 @@ scheduled-injest/train_zero_shot/__pycache__/
 visualize/
 
 cron-able-ingest-scripts/
+
+.env
+
+local-talking-llm/

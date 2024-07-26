@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: nominatim
+    shm_size: '1gb'
+    env_file:
+      - .env
+    environment:
+      PBF_URL: https://download.geofabrik.de/north-america/us-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/north-america/us-updates/
+      IMPORT_WIKIPEDIA: 'false'
+      NOMINATIM_PASSWORD: ${NOMINATIM_PASSWORD}
+    volumes:
+      - nominatim-data:/var/lib/postgresql/14/main
+    ports:
+      - "8080:8080"
+
+  timescaledb:
+    env_file:
+      - .env
+    image: timescale/timescaledb-ha:pg16
+    container_name: timescaledb_container
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/home/postgres/pgdata/data
+    restart: unless-stopped
+
+  gotify:
+    image: gotify/server
+    ports:
+      - 9090:80
+    env_file:
+      - .env
+    volumes:
+      - gotify_data:/app/data
+
+  subscriptions:
+    build:
+      context: .
+      dockerfile: ./subscriptions/Dockerfile
+    volumes:
+      - ./subscriptions:/app/subscriptions
+      - ./libraries:/app/libraries
+    depends_on:
+      - timescaledb
+      - gotify
+
+  scheduled-injest:
+    build:
+      context: .
+      dockerfile: ./scheduled-injest/Dockerfile
+    volumes:
+      - ./scheduled-injest:/app
+      - ./libraries:/app/libraries
+    depends_on:
+      - timescaledb
+
+  realtime-injest:
+    build:
+      context: .
+      dockerfile: ./realtime-injest/Dockerfile
+    volumes:
+      - ./realtime-injest:/app
+      - ./libraries:/app/libraries
+    depends_on:
+      - timescaledb
+      - gotify
+
+volumes:
+  nominatim-data:
+    driver: local
+  timescaledb-data:
+    driver: local
+  gotify_data:
+    driver: local

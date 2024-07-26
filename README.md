@@ -37,6 +37,7 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
     - For easy push notifications to android/ios
     - start: `docker-compose up -d`
     - data volume: `/var/lib/docker/volumes/gotify_gotify_data/_data`
+    - Will need to create an 'app_token' (api key) in the gotify web interface (https://gotify.net/docs/pushmsg) and add it to the .env file(s)
 
 - `scheduled-injest/`
   - Scripts for periodic data ingestion (and embedding)
