@@ -24,7 +24,7 @@ class GpsService : Service(), LocationListener {
     override fun onCreate() {
         super.onCreate()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        webSocketManager = WebSocketManager(AppState.serverIp)
+        webSocketManager = WebSocketManager(AppState.serverUrl)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

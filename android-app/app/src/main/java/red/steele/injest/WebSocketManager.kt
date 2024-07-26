@@ -13,7 +13,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import java.io.StringReader
-import java.security.MessageDigest
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -31,8 +30,7 @@ class WebSocketManager(private val serverUrl: String) {
     }
 
     private fun connect() {
-        val serverIp = AppState.serverIp
-        val request = Request.Builder().url("ws://$serverIp/ws").build()
+        val request = Request.Builder().url("ws://$serverUrl/ws").build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 listeners.forEach { it.onOpen(webSocket, response) }
@@ -261,7 +259,7 @@ class WebSocketManager(private val serverUrl: String) {
         // Update AppState response times and durations accordingly
         val sendTime = messageSendTimes[messageId]
         val duration = if (sendTime != null) System.currentTimeMillis() - sendTime else -1L
-        Log.d("WebSocketManager", "handleServerResponse called with messageId: $messageId, status: $status, messageType: $messageType")
+//        Log.d("WebSocketManager", "handleServerResponse called with messageId: $messageId, status: $status, messageType: $messageType")
 
         when (messageType) {
             "audio" -> AppState.audioResponseTimes.add(ResponseTime(AppState.audioResponseTimes.size.toLong(), status.toLong(), duration))

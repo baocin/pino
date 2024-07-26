@@ -39,7 +39,7 @@ class AudioService : Service() {
             return
         }
         initializeAudioRecord()
-        webSocketManager = WebSocketManager(AppState.serverIp)
+        webSocketManager = WebSocketManager(AppState.serverUrl)
     }
 
     private fun initializeAudioRecord() {

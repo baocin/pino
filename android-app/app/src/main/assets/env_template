@@ -1,1 +1,2 @@
-SERVER_IP="your.server.ip"
+REALTIME_SERVER_IP="totally.not.a.real.ip"
+REALTIME_SERVER_PORT="8081"

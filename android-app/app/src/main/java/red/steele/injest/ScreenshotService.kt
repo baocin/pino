@@ -27,7 +27,7 @@ class ScreenshotService : Service() {
     }
 
     override fun onCreate() {
-        webSocketManager = WebSocketManager(AppState.serverIp)
+        webSocketManager = WebSocketManager(AppState.serverUrl)
 
         // Register content observer to listen for new images added to the camera roll
         contentObserver = object : ContentObserver(handler) {

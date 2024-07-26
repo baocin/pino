@@ -53,7 +53,7 @@ class SensorService : Service(), SensorEventListener {
         significantMotionSensor = sensorManager.getDefaultSensor(Sensor.TYPE_SIGNIFICANT_MOTION)
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-        webSocketManager = WebSocketManager(AppState.serverIp)
+        webSocketManager = WebSocketManager(AppState.serverUrl)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

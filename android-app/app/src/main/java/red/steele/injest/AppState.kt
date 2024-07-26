@@ -13,13 +13,16 @@ object AppState {
         directory = "/assets"
         filename = "env"
     }
-    private val defaultServerIp = dotenv.get("SERVER_IP") ?: "REPLACE_WITH_SERVER_IP"
+    private val defaultServerIp = dotenv.get("REALTIME_SERVER_IP") ?: "REPLACE_WITH_SERVER_IP"
+    private val defaultServerPort = dotenv.get("REALTIME_SERVER_PORT") ?: "80"
 
     private lateinit var _context: Context
     val context: Context
         get() = _context
 
     var serverIp: String = defaultServerIp
+    var serverPort: String = defaultServerPort
+    var serverUrl: String = "$serverIp:$serverPort"
 
     var totalAudioBytesTransferred: Float = 0f
     var totalGpsBytesTransferred: Float = 0f
@@ -87,7 +90,7 @@ object AppState {
 
     private fun loadServerIp(): String {
         val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-        return sharedPreferences.getString("SERVER_IP", defaultServerIp) ?: defaultServerIp
+        return sharedPreferences.getString("REALTIME_SERVER_IP", defaultServerIp) ?: defaultServerIp
     }
 
 //    fun setServerIpToSharedPreferences(newIp: String) {

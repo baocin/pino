@@ -24,7 +24,7 @@ class SMSService : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         try {
             this.context = context
-            webSocketManager = WebSocketManager(AppState.serverIp)
+            webSocketManager = WebSocketManager(AppState.serverUrl)
             Log.d(TAG, "onReceive triggered with action: ${intent.action}")
 
             if (intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION || intent.action == "android.provider.Telephony.SMS_SENT") {

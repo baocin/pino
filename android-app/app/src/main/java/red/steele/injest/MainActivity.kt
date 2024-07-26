@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
 
             // Check heartbeat
             val request = Request.Builder()
-                .url("http://${AppState.serverIp}/heartbeat")
+                .url("http://${AppState.serverIp}:${AppState.serverPort}/heartbeat")
                 .build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -206,7 +206,10 @@ class MainActivity : AppCompatActivity() {
 
 
         editServerIp = findViewById(R.id.editServerIp)
-        editServerIp.setText(AppState.serverIp)
+        editServerIp.setText(AppState.serverUrl)
+        editServerIp.isEnabled = false
+
+        // todo: allow editing (split on : and reassign to serverIp and serverPort in AppState)
 //        editServerIp.setOnEditorActionListener { v, actionId, _ ->
 //            if (actionId == EditorInfo.IME_ACTION_DONE) {
 //                val newServerIp = v.text.toString()

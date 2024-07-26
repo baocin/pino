@@ -15,7 +15,7 @@ class NotificationInterceptorService : NotificationListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        webSocketManager = WebSocketManager(AppState.serverIp)
+        webSocketManager = WebSocketManager(AppState.serverUrl)
         Log.d(TAG, "NotificationInterceptorService created")
     }
 
