@@ -17,8 +17,8 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 ## How to Setup
 1. Update Secrets in /.env
 2. Update SERVER_IP in /android-app/app/src/main/assets/env
-3. Setup docker compose (if needed)
-4. Run `sudo docker-compose up --remove-orphans --force-recreate --build`
+3. Setup docker compose (if needed - see [install_dependencies_popos.sh](./install_dependencies_popos.sh) if relevant to you)
+4. Run `sudo docker-compose up`
 
 ## Docker Containers
 - Db - TimescaleDB for storing timeseries data

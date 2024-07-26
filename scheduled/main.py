@@ -4,14 +4,10 @@ import time
 import logging
 from datetime import datetime
 import os
-from dotenv import load_dotenv
-from db import DB 
+import sys
 import asyncio
-
-
-
-# Load environment variables
-load_dotenv()
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from libraries.db.db import DB
 
 # Configure logging
 logging.basicConfig(filename='manager.log', level=logging.INFO, 
@@ -26,22 +22,13 @@ class TaskManager:
         self.fetch_contacts_lock = threading.Lock()
         self.fetch_tweets_lock = threading.Lock()
         self.fetch_github_lock = threading.Lock()  # Added lock for GitHub scrape
-        self.db = self.setup_db()
-
-    def setup_db(self):
-        try:
-            db_instance = DB(
+        self.db = DB(
                 host=os.getenv("POSTGRES_HOST"),
                 port=os.getenv("POSTGRES_PORT"),
                 database=os.getenv("POSTGRES_DB"),
                 user=os.getenv("POSTGRES_USER"),
                 password=os.getenv("POSTGRES_PASSWORD")
             )
-            logging.info("Database connection established via DB class")
-            return db_instance
-        except Exception as e:
-            logging.error(f"Error connecting to the database via DB class: {e}")
-            return None
 
     def run_task(self, task, task_lock, *args):
         if not task_lock.acquire(blocking=False):

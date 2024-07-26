@@ -3,7 +3,6 @@ import os
 import random
 import time
 import uuid
-from db import DB
 from playwright.async_api import async_playwright, Playwright
 import asyncio
 import requests

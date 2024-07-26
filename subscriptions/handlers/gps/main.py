@@ -56,7 +56,7 @@ def calculate_speed(first_point, last_point, time_diff):
 
 def reverse_geocode(lat, lon):
     try:
-        base_url = "http://localhost:8080/reverse"
+        base_url = f"http://{os.getenv('NOMINATIM_URL')}:{os.getenv('NOMINATIM_PORT')}/reverse"
         params = {
             'lat': lat,
             'lon': lon,

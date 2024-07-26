@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=build /app/venv /app/venv
 # COPY .env ./subscriptions/.env
 
-COPY subscriptions ./subscriptions
+# COPY subscriptions ./subscriptions
 COPY libraries/db ./libraries/db
 COPY libraries/gotify ./libraries/gotify
 

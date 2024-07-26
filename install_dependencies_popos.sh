@@ -80,7 +80,7 @@ echo "System is ready for use."
 
 # Bring up the Docker containers defined in docker-compose.yml
 echo "Starting Docker containers..."
-docker-compose up -d
+sudo docker-compose up --remove-orphans --force-recreate --build
 
 # Check the health of specific Docker containers defined in docker-compose.yml
 echo "Checking health of Docker containers..."

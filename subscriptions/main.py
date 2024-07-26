@@ -97,7 +97,7 @@ subscriptions = [
     },
     {
         "label": "email_check",
-        "query": "SELECT email_id, subject, sender, date_received FROM emails ORDER BY date_received DESC LIMIT 10",
+        "query": "SELECT id AS email_id, subject, sender, date_received FROM emails ORDER BY date_received DESC LIMIT 10",
         "interval": 4,
         "handler": handle_email_check,
         "max_notifications_per_minute": 2
@@ -131,60 +131,16 @@ subscriptions = [
     {
         "label": "get_back_to_work",
         "query": """
-            WITH recent_data AS (
-                SELECT 
-                    sd.sensor_type,
-                    sd.x, sd.y, sd.z,
-                    sd.created_at,
-                    sd.device_id,
-                    LAG(sd.created_at) OVER (PARTITION BY sd.device_id, sd.sensor_type ORDER BY sd.created_at) AS prev_time
-                FROM sensor_data sd
-                WHERE 
-                    sd.sensor_type IN ('accelerometer', 'gyroscope', 'gravity')
-                    AND sd.created_at >= NOW() - INTERVAL '1 minute'
-                    AND sd.device_id = '1'
-            ),
-            movement_analysis AS (
-                SELECT 
-                    device_id,
-                    sensor_type,
-                    CASE 
-                        WHEN sensor_type = 'accelerometer' AND (ABS(x) > 0.1 OR ABS(y) > 0.1 OR ABS(z) > 0.1) THEN 1
-                        WHEN sensor_type = 'gyroscope' AND (ABS(x) > 0.05 OR ABS(y) > 0.05 OR ABS(z) > 0.05) THEN 1
-                        ELSE 0 
-                    END AS is_moving,
-                    CASE
-                        WHEN sensor_type = 'gravity' AND ABS(z) < 9.5 THEN 1
-                        ELSE 0
-                    END AS is_tilted
-                FROM recent_data
-            ),
-            aggregated_movement AS (
-                SELECT 
-                    device_id,
-                    AVG(CASE WHEN sensor_type IN ('accelerometer', 'gyroscope') THEN is_moving ELSE NULL END) AS avg_movement,
-                    AVG(CASE WHEN sensor_type = 'gravity' THEN is_tilted ELSE NULL END) AS avg_tilt
-                FROM movement_analysis
-                GROUP BY device_id
-            )
-            SELECT device_id, 
-                   CASE 
-                       WHEN avg_movement > 0.6 AND avg_tilt > 0.6 THEN 'Phone is likely being held'
-                       ELSE 'Phone is likely not being held'
-                   END AS phone_status
-            FROM aggregated_movement
+            SELECT 0 as status
         """,
         "interval": 60,
         "handler": handle_get_back_to_work,
-        "trigger_on_all_queries": False,
+        "trigger_on_all_queries": True,
         "max_notifications_per_minute": 1
     },
 ]
 
 if __name__ == "__main__":
-    with open('started.txt', 'w') as f:
-        f.write('Subscriptions service started')
-
     subscribers = [DBSubscription(sub["label"], sub["query"], sub["interval"], sub["handler"], sub["max_notifications_per_minute"], sub.get("trigger_on_all_queries", False)) for sub in subscriptions]
     for subscriber in subscribers:
         subscriber.start_polling()

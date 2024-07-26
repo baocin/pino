@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y build-essential && \
 # Stage 2: Runtime
 FROM python:3.11-slim
 
-WORKDIR /app/scheduled
+WORKDIR /app
 
 COPY --from=build /app/venv /app/venv
 # COPY scheduled ./scheduled
