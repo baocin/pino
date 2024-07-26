@@ -36,7 +36,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 15s
 
   gotify-pino:
     image: gotify/server
@@ -72,13 +71,13 @@ services:
         condition: service_healthy
     networks:
       - pino-network
+    
     healthcheck:
       test: ["CMD-SHELL", "test -f /app/started.txt || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
-
+      
   scheduled-pino:
     container_name: scheduled-pino
     env_file:
@@ -98,7 +97,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
 
   realtime-pino:
     container_name: realtime-pino
@@ -117,11 +115,20 @@ services:
     networks:
       - pino-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/heartbeat || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://${REALTIME_SERVER_HOST}:${REALTIME_SERVER_PORT}/heartbeat || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+    runtime: nvidia
+    ports:
+      - "${REALTIME_SERVER_PORT}:${REALTIME_SERVER_PORT}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
 volumes:
   nominatim-data:

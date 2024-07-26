@@ -17,15 +17,16 @@ RUN apt-get update && apt-get install -y build-essential && \
 # Stage 2: Runtime
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /app/scheduled
 
 COPY --from=build /app/venv /app/venv
-COPY scheduled ./scheduled
+# COPY scheduled ./scheduled
 COPY libraries/db ./libraries/db
 COPY libraries/gotify ./libraries/gotify
+# COPY main.py .
 
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libraries:$PYTHONPATH"
 
 WORKDIR /app/scheduled
-CMD ["python", "main.py"]
+CMD ["python3.11", "main.py"]

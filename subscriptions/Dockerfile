@@ -30,4 +30,4 @@ ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libraries:$PYTHONPATH"
 
 WORKDIR /app/subscriptions
-CMD ["python", "main.py"]
+CMD ["python3.11", "main.py"]

@@ -590,6 +590,7 @@ async def gps_map(start_date: str = None, end_date: str = None, days: int = 1):
     
 if __name__ == "__main__":
     import uvicorn
-    # , log_level="warning"
-    uvicorn.run(app, host="0.0.0.0", port=os.getenv("SERVER_PORT"))
+    port = int(os.getenv("REALTIME_SERVER_PORT", "8000"))
+    host = os.getenv("REALTIME_SERVER_URL", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)
     #443, ssl_keyfile="path/to/your/keyfile.pem", ssl_certfile="path/to/your/certfile.pem")
