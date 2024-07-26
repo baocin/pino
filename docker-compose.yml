@@ -79,16 +79,15 @@ services:
       retries: 3
       start_period: 30s
 
-  scheduled-injest-pino:
-    container_name: scheduled-injest-pino
+  scheduled-pino:
+    container_name: scheduled-pino
     env_file:
       - ./.env
     build:
       context: .
-      dockerfile: ./scheduled-injest/Dockerfile
+      dockerfile: ./scheduled/Dockerfile
     volumes:
-      - ./scheduled-injest:/app
-      - ./libraries:/app/libraries
+      - ./scheduled:/app/scheduled
     depends_on:
       timescaledb-pino:
         condition: service_healthy
@@ -99,17 +98,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
 
-  realtime-injest-pino:
-    container_name: realtime-injest-pino
+  realtime-pino:
+    container_name: realtime-pino
     env_file:
       - ./.env
     build:
       context: .
-      dockerfile: ./realtime-injest/Dockerfile
+      dockerfile: ./realtime/Dockerfile
     volumes:
-      - ./realtime-injest:/app
-      - ./libraries:/app/libraries
+      - ./realtime:/app/realtime
     depends_on:
       timescaledb-pino:
         condition: service_healthy
@@ -122,6 +121,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
 
 volumes:
   nominatim-data:

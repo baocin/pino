@@ -184,8 +184,7 @@ subscriptions = [
 if __name__ == "__main__":
     with open('started.txt', 'w') as f:
         f.write('Subscriptions service started')
-        
-    print(f"Initializing DBSubscription using {os.getenv('POSTGRES_HOST')}, {os.getenv('POSTGRES_PORT')}, {os.getenv('POSTGRES_DB')}, {os.getenv('POSTGRES_USER')}, {os.getenv('POSTGRES_PASSWORD')}")
+
     subscribers = [DBSubscription(sub["label"], sub["query"], sub["interval"], sub["handler"], sub["max_notifications_per_minute"], sub.get("trigger_on_all_queries", False)) for sub in subscriptions]
     for subscriber in subscribers:
         subscriber.start_polling()

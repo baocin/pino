@@ -6,6 +6,15 @@ __pycache__
 # Ignore virtual environments
 venv/
 env/
+scheduled/venv/
+realtime/venv/
+subscriptions/venv/
+scheduled/__pycache__
+realtime/__pycache__
+subscriptions/__pycache__
+realtime/audio/
+libraries/whisper_streaming/venv/
+libraries/whisper_streaming/__pycache__
 
 # Ignore version control directories
 .git/

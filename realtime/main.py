@@ -50,7 +50,6 @@ db = DB(
     user=os.getenv("POSTGRES_USER"),
     password=os.getenv("POSTGRES_PASSWORD")
 )
-db.connect()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

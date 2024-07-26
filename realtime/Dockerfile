@@ -3,16 +3,17 @@ FROM python:3.11-slim as build
 
 WORKDIR /app
 
-COPY scheduled-injest/requirements.txt .
+COPY realtime/requirements.txt .
 COPY libraries/db/requirements.txt ./db_requirements.txt
 COPY libraries/gotify/requirements.txt ./gotify_requirements.txt
+COPY libraries/whisper_streaming/requirements.txt ./whisper_requirements.txt
 
 RUN apt-get update && apt-get install -y build-essential && \
     python3 -m venv venv && \
     . venv/bin/activate && \
     pip install --upgrade pip && \
     pip install wheel && \
-    pip install --no-cache-dir -r requirements.txt -r db_requirements.txt -r gotify_requirements.txt
+    pip install --no-cache-dir -r requirements.txt -r db_requirements.txt -r gotify_requirements.txt -r whisper_requirements.txt
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -20,12 +21,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY --from=build /app/venv /app/venv
-COPY scheduled-injest ./scheduled-injest
+COPY realtime ./realtime
 COPY libraries/db ./libraries/db
 COPY libraries/gotify ./libraries/gotify
+COPY libraries/whisper_streaming ./libraries/whisper_streaming
 
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libraries:$PYTHONPATH"
 
-WORKDIR /app/scheduled-injest
+WORKDIR /app/realtime
 CMD ["python", "main.py"]

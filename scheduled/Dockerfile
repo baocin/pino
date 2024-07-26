@@ -3,7 +3,7 @@ FROM python:3.11-slim as build
 
 WORKDIR /app
 
-COPY realtime-injest/requirements.txt .
+COPY scheduled/requirements.txt .
 COPY libraries/db/requirements.txt ./db_requirements.txt
 COPY libraries/gotify/requirements.txt ./gotify_requirements.txt
 
@@ -20,12 +20,12 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY --from=build /app/venv /app/venv
-COPY realtime-injest ./realtime-injest
+COPY scheduled ./scheduled
 COPY libraries/db ./libraries/db
 COPY libraries/gotify ./libraries/gotify
 
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libraries:$PYTHONPATH"
 
-WORKDIR /app/realtime-injest
+WORKDIR /app/scheduled
 CMD ["python", "main.py"]
