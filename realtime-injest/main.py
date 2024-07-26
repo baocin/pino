@@ -12,7 +12,6 @@ import os
 import sys
 import base64
 from collections import deque
-from dotenv import load_dotenv
 from processors.process_audio import AudioProcessor
 from processors.process_screenshot import ScreenshotProcessor
 from processors.process_photo import PhotoProcessor
@@ -26,9 +25,7 @@ import json
 from datetime import datetime, timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from libraries.db import DB
-
-load_dotenv()
+from libraries.db.db import DB
 
 app = FastAPI()
 
@@ -40,14 +37,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Set up Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-db = DB()
+db = DB(
+    host=os.getenv("POSTGRES_HOST"),
+    port=os.getenv("POSTGRES_PORT"),
+    database=os.getenv("POSTGRES_DB"),
+    user=os.getenv("POSTGRES_USER"),
+    password=os.getenv("POSTGRES_PASSWORD")
+)
 db.connect()
 
 logging.basicConfig(level=logging.INFO)

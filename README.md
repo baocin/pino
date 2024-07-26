@@ -14,31 +14,18 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 
 **Disclaimer: This project is currently a work in progress. Many features are experimental and may not be fully functional.**
 
-## Hardware
-- Target: NVIDIA GeForce RTX 2070 (8GB) or equivalent
-- ~15 TFLOPS at FP16
-- ~7 TFLOPS at FP32
+## How to Setup
+1. Update Secrets in /.env
+2. Update SERVER_IP in /android-app/app/src/main/assets/env
+3. Setup docker compose (if needed)
+4. Run `sudo docker-compose up --remove-orphans --force-recreate --build`
 
-## Folder Structure (in order of install/setup)
-- docker containers:
-  - ![Docker Containers](./readme_assets/ctop.png)
-  - `db/`
-    - timescaledb - for storing timeseries data
-    - start: `docker-compose up -d`
-    - data volume: `/var/lib/docker/volumes/db_timescaledb-data/_data`
+## Docker Containers
+- Db - TimescaleDB for storing timeseries data
+- Maps - Nominatim for geocoding
+- Gotify - For easy push notifications to android/ios
 
-  - `maps/`
-    - Contains the docker-compose for the nominatim server
-    - start: `docker-compose up -d`
-    - data volume: `/var/lib/docker/volumes/maps_nominatim-data/_data`
-    - Provides easy geocoding, reverse geocoding, osm querying
-
-  - `gotify/`
-    - For easy push notifications to android/ios
-    - start: `docker-compose up -d`
-    - data volume: `/var/lib/docker/volumes/gotify_gotify_data/_data`
-    - Will need to create an 'app_token' (api key) in the gotify web interface (https://gotify.net/docs/pushmsg) and add it to the .env file(s)
-
+## Folder Structure (Custom Docker Containers in /docker-compose.yml)
 - `scheduled-injest/`
   - Scripts for periodic data ingestion (and embedding)
     - `twitter/`   scrapes likes using playwright
@@ -84,16 +71,10 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
     - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
       - ![GPS Map Example](./readme_assets/gps-map.png) 
 
-
-## Getting Started
-
-(Instructions for installation and setup to be added)
-
-- Update the .env files:
-  - `android-app/app/src/main/java/red/steele/injest/.env`
-    - Needs Websocket Server IP
-  - Best way to find all .env files is to look at .gitignore
-    - Effectively every folder is a 'service' and I've been encapsulating them as much as possible
+## Target Hardware
+- NVIDIA GeForce RTX 2070 (8GB)
+- ~15 TFLOPS at FP16
+- ~7 TFLOPS at FP32
 
 ## Contribution
 

@@ -3,6 +3,7 @@ import surya
 import base64
 from datetime import datetime
 import zstd
+from fastapi import HTTPException
 
 class PhotoProcessor:
     def __init__(self, db_interface):

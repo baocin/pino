@@ -10,6 +10,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Switch
 import android.widget.TextView
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chartScreenshot: LineChart
     private lateinit var chartSensor: LineChart
     private lateinit var chartPhoto : LineChart
+    private lateinit var editServerIp: EditText
 
     private val client = OkHttpClient()
     private lateinit var statusTextView: TextView
@@ -97,9 +99,10 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.text_sensor_packets).text = "Sensor Packets: $sensorKBPerSecond KB/s (Sent: ${AppState.sensorResponseTimes.size})"
             findViewById<TextView>(R.id.text_photo_packets).text = "Photo Packets: $photoKBPerSecond KB/s (Sent: ${AppState.photoResponseTimes.size})"
 
+
             // Check heartbeat
             val request = Request.Builder()
-                .url("https://aoi.fringenot.com/heartbeat")
+                .url("http://${AppState.serverIp}/heartbeat")
                 .build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -156,6 +159,7 @@ class MainActivity : AppCompatActivity() {
 
         statusTextView = findViewById(R.id.text_status)
 
+
         updateHandler.post(updateRunnable) // Start updating packet counts every second
 
         requestPermissions()
@@ -199,6 +203,28 @@ class MainActivity : AppCompatActivity() {
         switchPhotoService.setOnCheckedChangeListener { _, isChecked ->
             AppState.isPhotoServiceEnabled = isChecked
         }
+
+
+        editServerIp = findViewById(R.id.editServerIp)
+        editServerIp.setText(AppState.serverIp)
+//        editServerIp.setOnEditorActionListener { v, actionId, _ ->
+//            if (actionId == EditorInfo.IME_ACTION_DONE) {
+//                val newServerIp = v.text.toString()
+//                AppState.setServerIpToSharedPreferences(newServerIp)
+//                Log.d("MainActivity", newServerIp)
+//                Log.d("MainActivity", "New server IP set: ${AppState.serverIp}")
+//                true
+//            } else {
+//                false
+//            }
+//        }
+//        editServerIp.setOnFocusChangeListener { _, hasFocus ->
+//            if (!hasFocus) {
+//                val newServerIp = editServerIp.text.toString()
+//                AppState.setServerIpToSharedPreferences(newServerIp)
+//                Log.d("MainActivity", "New server IP set: ${AppState.serverIp}")
+//            }
+//        }
     }
 
 //    private fun updatePacketCounts() {

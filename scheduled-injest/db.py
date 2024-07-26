@@ -23,20 +23,3 @@ class DB:
         except Exception as e:
             logging.error(f"Error connecting to the database: {e}")
             raise
-
-    @staticmethod
-    def initialize_db():
-        connection = DB.connect()
-        cursor = connection.cursor()
-        # try:
-        #     with open('../db/initialize_from_zero.sql', 'r') as sql_file:
-        #         sql_commands = sql_file.read()
-        #         cursor.execute(sql_commands)
-        #     logging.info("Created table documents if not exists.")
-        #     connection.commit()
-        # except Exception as e:
-        #     logging.error(f"Error initializing database: {e}")
-
-        cursor.close()
-        logging.info("Database initialization complete.")
-        return connection

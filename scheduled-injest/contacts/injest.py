@@ -1,6 +1,5 @@
 import requests
 import os
-from dotenv import load_dotenv
 import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -12,8 +11,13 @@ logging.basicConfig(filename='contacts.log', level=logging.INFO,
 
 class ContactsInjest:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
         all_accounts = [

@@ -3,7 +3,6 @@ import os
 import random
 import time
 import uuid
-from dotenv import load_dotenv
 from db import DB
 from playwright.async_api import async_playwright, Playwright
 import asyncio
@@ -12,9 +11,6 @@ import logging
 from embedding import EmbeddingService
 import psycopg2
 
-# Load environment variables
-load_dotenv()
-
 # Configure logging
 logging.basicConfig(filename='tweet_scrape.log', level=logging.INFO, 
                     format='%(asctime)s - tweets - %(levelname)s - %(message)s')
@@ -22,7 +18,8 @@ logging.basicConfig(filename='tweet_scrape.log', level=logging.INFO,
 # Constants
 X_URL = "https://x.com"
 X_LOGIN_URL = "https://x.com/i/flow/login"
-X_LIKES_URL = "https://x.com/baocin/likes"
+username = os.getenv("X_USERNAME")
+X_LIKES_URL = f"https://x.com/{username}/likes"
 X_LOGIN_REDIRECT_URL = "https://x.com/home"
 
 # User agents list
@@ -35,8 +32,13 @@ USER_AGENTS = [
 
 class TweetInjest:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
 

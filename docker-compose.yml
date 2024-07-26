@@ -1,43 +1,64 @@
 version: '3.8'
 
 services:
-  nominatim:
+  nominatim-pino:
     image: mediagis/nominatim:4.4
-    container_name: nominatim
+    container_name: nominatim-pino
     shm_size: '1gb'
     env_file:
-      - .env
-    environment:
-      PBF_URL: https://download.geofabrik.de/north-america/us-latest.osm.pbf
-      REPLICATION_URL: https://download.geofabrik.de/north-america/us-updates/
-      IMPORT_WIKIPEDIA: 'false'
-      NOMINATIM_PASSWORD: ${NOMINATIM_PASSWORD}
+      - ./.env
     volumes:
       - nominatim-data:/var/lib/postgresql/14/main
     ports:
       - "8080:8080"
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/status || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
-  timescaledb:
+  timescaledb-pino:
     env_file:
-      - .env
+      - ./.env
     image: timescale/timescaledb-ha:pg16
-    container_name: timescaledb_container
+    container_name: timescaledb-pino
     ports:
       - "5432:5432"
     volumes:
       - timescaledb-data:/home/postgres/pgdata/data
     restart: unless-stopped
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
-  gotify:
+  gotify-pino:
     image: gotify/server
+    container_name: gotify-pino
     ports:
       - 9090:80
     env_file:
-      - .env
+      - ./.env
     volumes:
-      - gotify_data:/app/data
+      - gotify-data:/app/data
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:80/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  subscriptions:
+  subscriptions-pino:
+    container_name: subscriptions-pino
+    env_file:
+      - ./.env
     build:
       context: .
       dockerfile: ./subscriptions/Dockerfile
@@ -45,10 +66,23 @@ services:
       - ./subscriptions:/app/subscriptions
       - ./libraries:/app/libraries
     depends_on:
-      - timescaledb
-      - gotify
+      timescaledb-pino:
+        condition: service_healthy
+      gotify-pino:
+        condition: service_healthy
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/started.txt || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  scheduled-injest:
+  scheduled-injest-pino:
+    container_name: scheduled-injest-pino
+    env_file:
+      - ./.env
     build:
       context: .
       dockerfile: ./scheduled-injest/Dockerfile
@@ -56,9 +90,20 @@ services:
       - ./scheduled-injest:/app
       - ./libraries:/app/libraries
     depends_on:
-      - timescaledb
+      timescaledb-pino:
+        condition: service_healthy
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/started.txt || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  realtime-injest:
+  realtime-injest-pino:
+    container_name: realtime-injest-pino
+    env_file:
+      - ./.env
     build:
       context: .
       dockerfile: ./realtime-injest/Dockerfile
@@ -66,13 +111,26 @@ services:
       - ./realtime-injest:/app
       - ./libraries:/app/libraries
     depends_on:
-      - timescaledb
-      - gotify
+      timescaledb-pino:
+        condition: service_healthy
+      gotify-pino:
+        condition: service_healthy
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/heartbeat || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   nominatim-data:
     driver: local
   timescaledb-data:
     driver: local
-  gotify_data:
+  gotify-data:
     driver: local
+
+networks:
+  pino-network:
+    driver: bridge

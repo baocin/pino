@@ -30,7 +30,6 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.
 from libraries.whisper_streaming import whisper_online
 from libraries.gotify.gotify import send_gotify_message
 
-
 # Set up logging
 log_file = 'process_audio.log'
 logging.basicConfig(filename=log_file, level=logging.INFO, 

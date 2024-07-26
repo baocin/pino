@@ -2,16 +2,12 @@ import os
 import random
 import time
 import requests
-from dotenv import load_dotenv
 from playwright.async_api import async_playwright, Playwright
 import asyncio
 import logging
 import psycopg2
 import json
 from embedding import EmbeddingService
-
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(filename='github_scrape.log', level=logging.INFO, 
@@ -23,8 +19,13 @@ GITHUB_API_URL = "https://api.github.com"
 
 class GitHubScrape:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
 

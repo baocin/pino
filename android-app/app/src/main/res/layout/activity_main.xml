@@ -152,7 +152,7 @@
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chart_photo"
                 android:layout_width="match_parent"
-                android:layout_height="141dp" />
+                android:layout_height="121dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -186,6 +186,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="Last Screenshot" />
+
+            <EditText
+                android:id="@+id/editServerIp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="Server Address"
+                android:inputType="text" />
 
         </LinearLayout>
     </ScrollView>

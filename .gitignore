@@ -296,3 +296,7 @@ cron-able-ingest-scripts/
 .env
 
 local-talking-llm/
+
+android-app/app/src/main/assets/env
+
+libraries/db/__pycache__/

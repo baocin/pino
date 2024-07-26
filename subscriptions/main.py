@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from libraries.db import DB
+from libraries.db.db import DB
 
 import logging
 from dotenv import load_dotenv
@@ -13,12 +13,10 @@ from handlers.gps.main import handle_gps_data
 from handlers.email.main import handle_email_check
 from handlers.connection import handle_check_connection
 from handlers.archiver import handle_device_log
+from handlers.alerts import handle_get_back_to_work
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from libraries.gotify.gotify import send_gotify_message
-
-# Load environment variables
-load_dotenv()
 
 # Set up logging
 logging.basicConfig(filename='subscription_handler.log', level=logging.INFO, 
@@ -29,7 +27,13 @@ notification_tracker = defaultdict(list)
 
 class DBSubscription:
     def __init__(self, label, query, interval, handler, max_notifications_per_minute, trigger_on_all_queries=False):
-        self.db = DB()
+        self.db = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.label = label
         self.query = query
         self.table_name = DBSubscription.extract_table_name(self.query)
@@ -123,12 +127,65 @@ subscriptions = [
         "handler": handle_device_log,
         "trigger_on_all_queries": True,
         "max_notifications_per_minute": 0
-    }
-
-
+    },
+    {
+        "label": "get_back_to_work",
+        "query": """
+            WITH recent_data AS (
+                SELECT 
+                    sd.sensor_type,
+                    sd.x, sd.y, sd.z,
+                    sd.created_at,
+                    sd.device_id,
+                    LAG(sd.created_at) OVER (PARTITION BY sd.device_id, sd.sensor_type ORDER BY sd.created_at) AS prev_time
+                FROM sensor_data sd
+                WHERE 
+                    sd.sensor_type IN ('accelerometer', 'gyroscope', 'gravity')
+                    AND sd.created_at >= NOW() - INTERVAL '1 minute'
+                    AND sd.device_id = '1'
+            ),
+            movement_analysis AS (
+                SELECT 
+                    device_id,
+                    sensor_type,
+                    CASE 
+                        WHEN sensor_type = 'accelerometer' AND (ABS(x) > 0.1 OR ABS(y) > 0.1 OR ABS(z) > 0.1) THEN 1
+                        WHEN sensor_type = 'gyroscope' AND (ABS(x) > 0.05 OR ABS(y) > 0.05 OR ABS(z) > 0.05) THEN 1
+                        ELSE 0 
+                    END AS is_moving,
+                    CASE
+                        WHEN sensor_type = 'gravity' AND ABS(z) < 9.5 THEN 1
+                        ELSE 0
+                    END AS is_tilted
+                FROM recent_data
+            ),
+            aggregated_movement AS (
+                SELECT 
+                    device_id,
+                    AVG(CASE WHEN sensor_type IN ('accelerometer', 'gyroscope') THEN is_moving ELSE NULL END) AS avg_movement,
+                    AVG(CASE WHEN sensor_type = 'gravity' THEN is_tilted ELSE NULL END) AS avg_tilt
+                FROM movement_analysis
+                GROUP BY device_id
+            )
+            SELECT device_id, 
+                   CASE 
+                       WHEN avg_movement > 0.6 AND avg_tilt > 0.6 THEN 'Phone is likely being held'
+                       ELSE 'Phone is likely not being held'
+                   END AS phone_status
+            FROM aggregated_movement
+        """,
+        "interval": 60,
+        "handler": handle_get_back_to_work,
+        "trigger_on_all_queries": False,
+        "max_notifications_per_minute": 1
+    },
 ]
 
 if __name__ == "__main__":
+    with open('started.txt', 'w') as f:
+        f.write('Subscriptions service started')
+        
+    print(f"Initializing DBSubscription using {os.getenv('POSTGRES_HOST')}, {os.getenv('POSTGRES_PORT')}, {os.getenv('POSTGRES_DB')}, {os.getenv('POSTGRES_USER')}, {os.getenv('POSTGRES_PASSWORD')}")
     subscribers = [DBSubscription(sub["label"], sub["query"], sub["interval"], sub["handler"], sub["max_notifications_per_minute"], sub.get("trigger_on_all_queries", False)) for sub in subscriptions]
     for subscriber in subscribers:
         subscriber.start_polling()

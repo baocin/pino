@@ -1,12 +1,26 @@
 package red.steele.injest
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.res.Resources
 import android.graphics.Bitmap
+import io.github.cdimascio.dotenv.dotenv
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.Properties
-import java.io.FileInputStream
 
+@SuppressLint("StaticFieldLeak")
 object AppState {
+    private val dotenv = dotenv {
+        directory = "/assets"
+        filename = "env"
+    }
+    private val defaultServerIp = dotenv.get("SERVER_IP") ?: "REPLACE_WITH_SERVER_IP"
+
+    private lateinit var _context: Context
+    val context: Context
+        get() = _context
+
+    var serverIp: String = defaultServerIp
+
     var totalAudioBytesTransferred: Float = 0f
     var totalGpsBytesTransferred: Float = 0f
     var totalScreenshotBytesTransferred: Float = 0f
@@ -18,7 +32,6 @@ object AppState {
     var onlySendWhenPlugged: Boolean = false
     var sendDataEver: Boolean = true
 
-    var serverIp: String = loadServerIp()
     val startTime = System.currentTimeMillis()
 
     var audioPacketsSent: Int = 0
@@ -36,9 +49,9 @@ object AppState {
 
     var isConnected : Boolean = true
 
-//    Audio size: 640 bytes -> Compressed audio size: 475 bytes
-//    Screenshot size: 87537 bytes -> Compressed screenshot size: 74264 bytes
-//
+    //    Audio size: 640 bytes -> Compressed audio size: 475 bytes
+    //    Screenshot size: 87537 bytes -> Compressed screenshot size: 74264 bytes
+    //
     var audioResponseTimes: CopyOnWriteArrayList<ResponseTime> = CopyOnWriteArrayList()
     var gpsResponseTimes: CopyOnWriteArrayList<ResponseTime> = CopyOnWriteArrayList()
     var screenshotResponseTimes: CopyOnWriteArrayList<ResponseTime> = CopyOnWriteArrayList()
@@ -54,7 +67,12 @@ object AppState {
 
     var lastScreenshot: Bitmap? = null
 
-    public fun shouldSendData(): Boolean {
+    fun initialize(appContext: Context) {
+        _context = appContext.applicationContext
+        serverIp = loadServerIp()
+    }
+
+    fun shouldSendData(): Boolean {
         if (!sendDataEver) {
             return false
         }
@@ -68,11 +86,21 @@ object AppState {
     }
 
     private fun loadServerIp(): String {
-        val properties = Properties()
-        val inputStream = FileInputStream(".env")
-        properties.load(inputStream)
-        return properties.getProperty("SERVER_IP", "REPLACE_WITH_SERVER_IP")
+        val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("SERVER_IP", defaultServerIp) ?: defaultServerIp
     }
+
+//    fun setServerIpToSharedPreferences(newIp: String) {
+//        Log.d("AppState", "New ip: ${AppState.defaultServerIp}")
+//
+//        val sharedPreferences =
+//            context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+//        with(sharedPreferences.edit()) {
+//            putString("SERVER_IP", newIp)
+//            apply()
+//        }
+//        serverIp = newIp
+//    }
 }
 
 data class ResponseTime(val timestamp: Long, val status : Long, val duration: Long)

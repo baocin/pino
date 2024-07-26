@@ -1,12 +1,8 @@
 import requests
 import os
 import logging
-from dotenv import load_dotenv
 from embedding import EmbeddingService
 import uuid
-
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(filename='budget.log', level=logging.INFO, 
@@ -14,7 +10,13 @@ logging.basicConfig(filename='budget.log', level=logging.INFO,
 
 class BudgetInjest:
     def __init__(self, DB):
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
 

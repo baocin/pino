@@ -3,7 +3,6 @@ import email
 from email.header import decode_header
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 import logging
 import psycopg2
 from embedding import EmbeddingService
@@ -14,8 +13,13 @@ logging.basicConfig(filename='mail.log', level=logging.INFO,
 
 class EmailInjest:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
         all_accounts = [

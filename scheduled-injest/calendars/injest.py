@@ -2,7 +2,6 @@ import caldav
 from caldav.elements import dav, cdav
 from datetime import datetime, timedelta
 import os
-from dotenv import load_dotenv
 import logging
 from embedding import EmbeddingService
 import json
@@ -14,8 +13,13 @@ logging.basicConfig(filename='calendar.log', level=logging.INFO,
     
 class CalendarInjest:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.embedding_service = EmbeddingService()
         all_accounts = [

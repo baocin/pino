@@ -53,7 +53,7 @@ android {
 dependencies {
 //    implementation("org.webrtc:google-webrtc:1.0.32006")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0");
-
+implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.android.material:material:1.6.1")
     implementation("com.github.luben:zstd-jni:1.5.6-3@aar")

@@ -30,8 +30,13 @@ class TaskManager:
 
     def setup_db(self):
         try:
-            db_instance = DB()
-            db_instance.initialize_db()
+            db_instance = DB(
+                host=os.getenv("POSTGRES_HOST"),
+                port=os.getenv("POSTGRES_PORT"),
+                database=os.getenv("POSTGRES_DB"),
+                user=os.getenv("POSTGRES_USER"),
+                password=os.getenv("POSTGRES_PASSWORD")
+            )
             logging.info("Database connection established via DB class")
             return db_instance
         except Exception as e:
@@ -159,6 +164,11 @@ if __name__ == "__main__":
     manager.schedule_task(1, 'hours', fetch_contacts_task, manager.fetch_contacts_lock)
     manager.schedule_task(12, 'hours', run_async_task, manager.fetch_tweets_lock, fetch_tweets_task)
     manager.schedule_task(12, 'hours', run_async_task, manager.fetch_github_lock, fetch_github_task)
+    
+
+    # Write a file to indicate that the service has started
+    with open('started.txt', 'w') as f:
+        f.write('Scheduled injest service started')
 
     # run_async_task(fetch_calendar_task, manager.fetch_calendar_lock)
 

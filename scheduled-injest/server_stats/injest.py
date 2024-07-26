@@ -3,7 +3,6 @@ import time
 import threading
 import os
 import logging
-from dotenv import load_dotenv
 import GPUtil
 
 # Configure logging
@@ -13,8 +12,13 @@ logging.basicConfig(filename='server_stats.log', level=logging.INFO,
 
 class SystemStatsRecorder:
     def __init__(self, DB):
-        load_dotenv()
-        db_instance = DB()
+        db_instance = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
+        )
         self.db = db_instance.connection
         self.device_id = 2 # to tie to an enum later
 

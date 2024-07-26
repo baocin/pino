@@ -1,11 +1,7 @@
 import os
 import requests
 import psycopg2
-from dotenv import load_dotenv
 import json
-
-# Load environment variables from .env file
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 GOTIFY_URL = os.getenv("GOTIFY_URL")
 GOTIFY_AUTH_TOKEN = os.getenv("GOTIFY_AUTH_TOKEN")
