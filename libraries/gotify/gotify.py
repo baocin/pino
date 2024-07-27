@@ -1,14 +1,19 @@
 import os
 import requests
-import psycopg2
 import json
+
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from libraries.db.db import DB
 
 GOTIFY_URL = os.getenv("GOTIFY_URL")
 GOTIFY_AUTH_TOKEN = os.getenv("GOTIFY_AUTH_TOKEN")
 
 # Extras can open url on notification click
 # https://gotify.net/docs/msgextras
-def send_gotify_message(title, message, priority=5, extras=None):
+def send_gotify_message(title, message, priority=10, extras=None):
     url = f"{GOTIFY_URL}/message?token={GOTIFY_AUTH_TOKEN}"
     
     if extras and "client::notification" in extras and "click" in extras["client::notification"]:
@@ -40,12 +45,12 @@ def send_gotify_message(title, message, priority=5, extras=None):
 def log_gotify_message(title, message, priority, status_code, extras):
     conn = None
     try:
-        conn = psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT")
+        conn = DB(
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD")
         )
         cursor = conn.cursor()
         insert_query = """
@@ -64,9 +69,6 @@ def log_gotify_message(title, message, priority, status_code, extras):
         cursor.close()
     except Exception as e:
         print(f"Error logging gotify message: {e}")
-    finally:
-        if conn is not None:
-            conn.close()
 
 # Example usage
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ def handle_email_check(subscription, differences):
     new_emails = []
 
     for row in differences:
-        email_id, subject, sender, date_received = row['email_id'], row['subject'], row['sender'], row['date_received']
+        email_id, subject, sender, date_received = row[0], row[1], row[2], row[3]
         new_emails.append({
             "email_id": email_id,
             "subject": subject,
@@ -43,8 +43,8 @@ def handle_email_check(subscription, differences):
     
     if differences:
         for email in differences:
-            notification_title = f"New Email from {email['sender']}"
-            notification_message = f"Subject: {email['subject']}\nReceived: {email['date_received']}"
+            notification_title = f"New Email from {email[2]}"
+            notification_message = f"Subject: {email[1]}\nReceived: {email[3]}"
             subscription.send_notification(notification_title, notification_message, 10)
         return new_emails
     

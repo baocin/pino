@@ -151,7 +151,13 @@ subscriptions = [
     {
         "label": "get_back_to_work",
         "query": """
-            SELECT 0 as status
+            SELECT COUNT(*) AS status
+            FROM device_status_log
+            WHERE device_id = 1
+            AND timestamp > NOW() - INTERVAL '5 minutes'
+            AND EXTRACT(EPOCH FROM (NOW() - last_movement)) < 300
+            AND speed < 0.5
+            AND screen_up IS NULL
         """,
         "interval": 10*60,
         "handler": handle_get_back_to_work,
