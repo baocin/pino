@@ -121,9 +121,39 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    runtime: nvidia
+    # runtime: nvidia
     ports:
       - "${REALTIME_SERVER_PORT}:${REALTIME_SERVER_PORT}"
+    # All gpu based processing will be ousourced to other containers so dependencies are easier to manage
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  llamafile:
+    container_name: llamafile-Meta-Llama-3.1-8B.Q4_0
+    image: iverly/llamafile-docker:latest
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile:/model
+    networks:
+      - pino-network
+    # -ngl 9999 to enable GPU offloading
+
+  whisper-streaming:
+    container_name: whisper-streaming
+    build:
+      context: ./whisper_streaming
+      dockerfile: Dockerfile
+    ports:
+      - "43007:43007"
+    networks:
+      - pino-network
+    runtime: nvidia
     deploy:
       resources:
         reservations:
@@ -131,6 +161,26 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  openedai-vision:
+    build:
+      context: ./openedai-vision
+      dockerfile: Dockerfile
+      args:
+        - VERSION=latest
+    image: ghcr.io/matatonic/openedai-vision
+    env_file:
+      - ./.env
+    volumes:
+      - ./openedai-vision/hf_home:/app/hf_home
+      - ./openedai-vision/model_zoo:/app/model_zoo
+      - ./openedai-vision/YanweiLi:/app/YanweiLi
+      - ./openedai-vision/model_conf_tests.json:/app/model_conf_tests.json
+    ports:
+      - "5006:5006"
+    networks:
+      - pino-network
+    command: ["python", "vision.py", "--model", "vikhyatk/moondream2"]
 
 volumes:
   nominatim-data:

@@ -1,0 +1,58 @@
+accelerate
+auto_gptq
+bitsandbytes
+fastapi
+# See: https://github.com/bdashore3/flash-attention/releases for other windows flash_attn releases
+# And: https://github.com/Dao-AILab/flash-attention/releases for linux.
+https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.2/flash_attn-2.6.2+cu123torch2.2cxx11abiFALSE-cp311-cp311-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.11"
+https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.2/flash_attn-2.6.2+cu123torch2.2cxx11abiFALSE-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.10"
+https://github.com/bdashore3/flash-attention/releases/download/v2.6.2/flash_attn-2.6.1+cu123torch2.2.2cxx11abiFALSE-cp311-cp311-win_amd64.whl; platform_system == "Windows" and python_version == "3.11"
+https://github.com/bdashore3/flash-attention/releases/download/v2.6.2/flash_attn-2.6.1+cu123torch2.2.2cxx11abiFALSE-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
+flash_attn; python_version != "3.10" and python_version != "3.11"
+hf_transfer
+loguru
+numpy<2
+openai
+peft
+protobuf
+pydantic
+python-datauri
+requests
+sentencepiece
+sse_starlette
+torch==2.2.*
+uvicorn
+xformers
+
+# moondream
+deepspeed<0.14.0
+einops
+einops-exts
+httpx
+markdown2[all]
+open_clip_torch
+shortuuid
+timm
+tokenizers
+torchvision
+
+# qwen
+matplotlib
+optimum
+tiktoken
+transformers_stream_generator
+
+# video
+decord
+
+# 360vl
+logger
+
+# alt
+#transformers==4.36.2
+
+# latest
+#transformers>=4.39.0
+# idefics2
+#autoawq
+

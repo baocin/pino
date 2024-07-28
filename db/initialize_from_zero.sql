@@ -786,7 +786,50 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create the image_data table
+CREATE TABLE public.image_data (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    device_id INT NOT NULL,
+    image_data BYTEA NOT NULL,
+    is_screenshot BOOLEAN NOT NULL,
+    is_generated BOOLEAN NOT NULL,
+    is_manual BOOLEAN NOT NULL,
+    is_front_camera BOOLEAN NOT NULL,
+    is_rear_camera BOOLEAN NOT NULL,
+    image_embedding VECTOR(512),
+    location GEOGRAPHY(POINT, 4326),
+    camera_pose JSONB,
+    metadata JSONB,
+    ocr_result JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT fk_image_data_device FOREIGN KEY (device_id) REFERENCES public.devices(id)
+);
+CREATE INDEX idx_image_data_device_id ON public.image_data(device_id);
+CREATE INDEX idx_image_data_created_at ON public.image_data(created_at);
+CREATE INDEX idx_image_data_location ON public.image_data USING GIST(location);
+COMMENT ON TABLE public.image_data IS 'Stores image data and metadata from various device sources';
 
+-- Add sha256 column to image_data table
+ALTER TABLE public.image_data
+ADD COLUMN sha256 VARCHAR(64);
+
+-- Create an index on the sha256 column for better query performance
+CREATE INDEX idx_image_data_sha256 ON public.image_data(sha256);
+
+-- Add a unique constraint to prevent duplicate images
+ALTER TABLE public.image_data
+ADD CONSTRAINT uq_image_data_sha256 UNIQUE (sha256);
+
+COMMENT ON COLUMN public.image_data.sha256 IS 'SHA256 hash of the image data for deduplication';
+
+-- Add image_id column to image_data table
+ALTER TABLE public.image_data
+ADD COLUMN image_id VARCHAR(255);
+
+-- Create an index on the image_id column for better query performance
+CREATE INDEX idx_image_data_image_id ON public.image_data(image_id);
+
+COMMENT ON COLUMN public.image_data.image_id IS 'Unique identifier for the image, typically provided by the client';
 
 -- Create a trigger to call the function when a new row is inserted into location_transitions
 CREATE TRIGGER update_device_location_trigger

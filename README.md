@@ -18,12 +18,27 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 1. Update Secrets in /.env
 2. Update SERVER_IP in /android-app/app/src/main/assets/env
 3. Setup docker compose (if needed - see [install_dependencies_popos.sh](./install_dependencies_popos.sh) if relevant to you)
+  3.1. Download LLM Model - https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile  into /llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
 4. Run `sudo docker-compose up`
 
 ## Docker Containers
 - Db - TimescaleDB for storing timeseries data
 - Maps - Nominatim for geocoding
 - Gotify - For easy push notifications to android/ios
+- Vision/OCR -OpenedAi-vision - https://github.com/matatonic/openedai-vision
+  - Example Usage: openedai-vision/chat_with_image.py
+  - Server: http://0.0.0.0:5006/
+  - Previously used Florence2 - (https://github.com/askaresh/MS-Florence2)
+- Whisper-Streaming - (dockerized https://github.com/marcinmatys/whisper_streaming)
+  - Example Usage: cd whisper_streaming/ && python3 web_app.py 
+    - Hosts a UI: https://localhost:5001
+  - Server: ws://127.0.0.1:43007/
+- LLM Serving - LLamaFile (https://github.com/iverly/llamafile-docker running [Mozilla/Meta-Llama-3.1-8B-llamafile](https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile))
+  - MUST DOWNLOAD https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile MANUALLY into /llamafile/model/
+  - Server: http://127.0.0.1:8080/
+  - underlying tech: https://github.com/Mozilla-Ocho/llamafile
+  - possible replacement: SGLang - OpenAI compatible inference server (source: https://github.com/sgl-project/sglang)
+
 
 ## Folder Structure (Custom Docker Containers in /docker-compose.yml)
 - `scheduled-injest/`

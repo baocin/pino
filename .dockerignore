@@ -15,6 +15,11 @@ subscriptions/__pycache__
 realtime/audio/
 libraries/whisper_streaming/venv/
 libraries/whisper_streaming/__pycache__
+whisper_streaming/venv
+whisper_streaming/__pycache__
+florence2/venv
+florence2/__pycache__
+
 
 # Ignore version control directories
 .git/

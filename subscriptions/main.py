@@ -129,11 +129,31 @@ subscriptions = [
         "max_notifications_per_minute": 0
     },
     {
+        "label": "look_at_sky_reminder",
+        "query": """
+            SELECT d.speed, d.last_known_location_id 
+            FROM devices d
+            WHERE d.id = '1'
+            AND d.speed > 3 
+            AND d.last_known_location_id IS NULL
+            AND d.screen_up IS NULL
+            AND d.last_movement > NOW() - INTERVAL '10 minutes'
+        """,
+        "interval": 10*60,
+        "handler": lambda subscription, result: subscription.send_notification(
+            title="Look at the Sky!",
+            message="You're outside and walking. Take a moment to look up and enjoy the sky!",
+            priority=5
+        ),
+        "trigger_on_all_queries": False,
+        "max_notifications_per_minute": 1
+    },
+    {
         "label": "get_back_to_work",
         "query": """
             SELECT 0 as status
         """,
-        "interval": 60,
+        "interval": 10*60,
         "handler": handle_get_back_to_work,
         "trigger_on_all_queries": True,
         "max_notifications_per_minute": 1

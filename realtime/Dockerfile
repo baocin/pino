@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM nvidia/cuda:12.4.0-devel-ubuntu22.04 as build
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 as build
 
 WORKDIR /app
 
@@ -16,16 +16,16 @@ RUN apt-get update && apt-get install -y software-properties-common tzdata && \
 COPY realtime/requirements.txt .
 COPY libraries/db/requirements.txt ./db_requirements.txt
 COPY libraries/gotify/requirements.txt ./gotify_requirements.txt
-COPY libraries/whisper_streaming/requirements.txt ./whisper_requirements.txt
+COPY libraries/embed/requirements.txt ./embed_requirements.txt
 
 RUN python3.11 -m venv venv && \
     . venv/bin/activate && \
     pip install --upgrade pip && \
     pip install wheel && \
-    pip install --no-cache-dir -r requirements.txt -r db_requirements.txt -r gotify_requirements.txt -r whisper_requirements.txt
+    pip install --no-cache-dir -r requirements.txt -r db_requirements.txt -r gotify_requirements.txt -r embed_requirements.txt
 
 # Stage 2: Runtime
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 WORKDIR /app
 
@@ -40,10 +40,9 @@ RUN apt-get update && apt-get install -y software-properties-common tzdata && \
     apt-get install -y python3.11 python3.11-venv
 
 COPY --from=build /app/venv /app/venv
-# COPY realtime ./realtime
 COPY libraries/db ./libraries/db
 COPY libraries/gotify ./libraries/gotify
-COPY libraries/whisper_streaming ./libraries/whisper_streaming
+COPY libraries/embed ./libraries/embed
 
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libraries:$PYTHONPATH"

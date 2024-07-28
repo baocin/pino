@@ -1,0 +1,19 @@
+[
+  ["YanweiLi/MGM-7B", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-7B", "--use-flash-attn"],
+  ["YanweiLi/MGM-7B-HD", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-7B-HD", "--use-flash-attn"],
+  ["YanweiLi/MGM-13B", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-13B", "--use-flash-attn"],
+  ["YanweiLi/MGM-13B-HD", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-13B-HD", "--use-flash-attn"],
+  ["YanweiLi/MGM-34B", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-34B", "--use-flash-attn"],
+  ["YanweiLi/MGM-34B-HD", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-34B-HD", "--use-flash-attn"],
+  ["YanweiLi/MGM-8x7B", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-8x7B", "--use-flash-attn"],
+  ["YanweiLi/MGM-8x7B-HD", "--load-in-4bit", "--use-flash-attn"],
+  ["YanweiLi/MGM-8x7B-HD", "--use-flash-attn"],
+  ["vikhyatk/moondream1"]
+]
