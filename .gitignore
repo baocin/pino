@@ -332,3 +332,5 @@ realtime/process_audio.log
 scheduled/started.txt
 
 subscriptions/started.txt
+
+whisper_streaming/
