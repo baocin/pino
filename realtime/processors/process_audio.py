@@ -72,6 +72,7 @@ class AudioProcessor:
     def on_message(self, message):
         logger.info(f"Received message from whisper-streaming: {message}")
         # Process the received transcription here
+        threading.Thread(target=lambda: self.db.insert_speech_data(message, json.dumps({}), None, None, self.device_id), daemon=True).start()
 
     def connect_to_whisper(self):
         try:
