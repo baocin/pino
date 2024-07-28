@@ -1,5 +1,15 @@
 version: '3.8'
 
+# {
+#   "nominatim-pino": "localhost:8080",
+#   "timescaledb-pino": "localhost:5432",
+#   "gotify-pino": "localhost:9090",
+#   "realtime-pino": "localhost:8081",
+#   "llamafile": "localhost:8082",
+#   "whisper-streaming": "localhost:43007",
+#   "openedai-vision": "localhost:5006"
+# }
+
 services:
   nominatim-pino:
     image: mediagis/nominatim:4.4
@@ -114,6 +124,8 @@ services:
         condition: service_healthy
       gotify-pino:
         condition: service_healthy
+      whisper-streaming:
+        condition: service_healthy
     networks:
       - pino-network
     healthcheck:
@@ -153,6 +165,14 @@ services:
       - "43007:43007"
     networks:
       - pino-network
+    healthcheck:
+      # test: ["CMD-SHELL", "python3 -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); result = s.connect_ex(('localhost', 43007)); s.close(); exit(0 if result == 0 else 1)\""]
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s # wait 15 seconds for the warm up, don't actually care about the health
+
     runtime: nvidia
     deploy:
       resources:

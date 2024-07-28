@@ -15,6 +15,8 @@ from collections import deque
 from processors.process_audio import AudioProcessor
 from processors.process_screenshot import ScreenshotProcessor
 from processors.process_photo import PhotoProcessor
+from processors.process_image import ImageProcessor
+
 # from injest_mail import EmailInjest
 # from injest_server_stats import SystemStatsRecorder
 
@@ -91,6 +93,7 @@ class NotificationData(BaseModel):
 audio_processor = AudioProcessor(db)
 screenshot_processor = ScreenshotProcessor(db)
 photo_processor = PhotoProcessor(db)
+image_processor = ImageProcessor(db)
 
 packet_tally = {
         "audio": 0,
@@ -129,6 +132,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 message_id = message["message_id"]
                                 
                 packet_tally[message_type] = packet_tally.get(message_type, 0) + 1
+
+                if message_type in ["manual_photo", "screenshot", "image"]:
+                    print(f"packet_tally: {packet_tally}")
             
                 if message_type == "audio":
                     await audio_processor.handle_audio_message(message, websocket, device_id)
@@ -139,10 +145,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     sensor_data = SensorData(**message.get("data"))
                     db.insert_sensor_data(sensor_data.sensorType, sensor_data.x, sensor_data.y, sensor_data.z, device_id)
                     
-                elif message_type == "manual_photo":
-                    await photo_processor.handle_photo_message(message.get("data"), websocket, device_id)
-                elif message_type == "screenshot":
-                    await screenshot_processor.handle_screenshot_message(message, websocket, device_id)
+                # elif message_type == "manual_photo":
+                #     print(f"message: {message}")
+                #     await photo_processor.handle_photo_message(message.get("data"), websocket, device_id)
+                # elif message_type == "screenshot":
+                #     print(f"message: {message}")
+                #     await image_processor.handle_image_message(message, websocket, device_id)
+                elif message_type == "image":
+                    await image_processor.handle_image_message(message.get("data"), websocket, device_id)
                 else:
                     packet_tally["unknown"] += 1
                     raise HTTPException(status_code=422, detail=f"Unprocessable Entity: Unknown message type {message_type}")
