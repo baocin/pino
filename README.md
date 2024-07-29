@@ -23,6 +23,9 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 2. Update SERVER_IP in /android-app/app/src/main/assets/env
 3. Setup docker compose (if needed - see [install_dependencies_popos.sh](./install_dependencies_popos.sh) if relevant to you)
   3.1. Download LLM Model - https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile  into /llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
+  3.2. [Optional] Download Different Whisper Model (default whisper v3 large is pretty good though)
+    - https://huggingface.co/distil-whisper/distil-large-v3
+    - https://huggingface.co/Systran/faster-distil-whisper-large-v3
 4. Run `sudo docker-compose up`
 5. Load initial database schema from /db/initialize_from_zero.sql
 
