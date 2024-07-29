@@ -555,6 +555,28 @@ COMMENT ON COLUMN public.known_class_detections.source_data IS 'Raw source data 
 COMMENT ON COLUMN public.known_class_detections.source_data_type IS 'Type of the source data';
 COMMENT ON COLUMN public.known_class_detections.metadata IS 'Additional metadata about the detection in JSON format';
 
+
+-- Function to delete old unverified detections
+CREATE OR REPLACE FUNCTION delete_unverified_detections() RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM public.known_class_detections
+    WHERE ground_truth IS NULL
+    AND created_at < NOW() - INTERVAL '1 hour';
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to run the function periodically
+CREATE TRIGGER trigger_delete_unverified_detections
+AFTER INSERT ON public.known_class_detections
+EXECUTE FUNCTION delete_unverified_detections();
+
+-- Index to improve performance of the delete operation
+CREATE INDEX idx_known_class_detections_ground_truth_created_at
+ON public.known_class_detections (ground_truth, created_at)
+WHERE ground_truth IS NULL;
+
+
 CREATE TABLE public.location_transitions (
 	id serial4 NOT NULL,
 	location_id int4 NULL,
