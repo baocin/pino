@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, File, UploadFile
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Any
@@ -16,7 +16,8 @@ from processors.process_audio import AudioProcessor
 from processors.process_screenshot import ScreenshotProcessor
 from processors.process_photo import PhotoProcessor
 from processors.process_image import ImageProcessor
-
+from libraries.embed.embed import EmbeddingService
+import tempfile
 # from injest_mail import EmailInjest
 # from injest_server_stats import SystemStatsRecorder
 
@@ -95,6 +96,7 @@ audio_processor = AudioProcessor(db)
 screenshot_processor = ScreenshotProcessor(db)
 photo_processor = PhotoProcessor(db)
 image_processor = ImageProcessor(db)
+embedding_service = EmbeddingService()
 
 packet_tally = {
         "audio": 0,
@@ -253,6 +255,88 @@ async def get_detection_audio(known_class_detection_id: str):
         logger.error(f"Error retrieving audio data: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
+@app.post("/embed")
+async def embed_file(file: UploadFile = File(...)):
+    # Create a temporary file to store the uploaded content
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        contents = await file.read()
+        temp_file.write(contents)
+        temp_file_path = temp_file.name
+
+    try:
+        # Determine if it's an image or text file
+        if file.content_type.startswith('image/'):
+            embedding = embedding_service.embed_image(temp_file_path)
+        else:
+            # Assume it's a text file
+            with open(temp_file_path, 'r') as f:
+                text = f.read()
+            embedding = embedding_service.embed_text([text])
+
+        return {"embedding": embedding[0]}  # Return the first (and only) embedding
+    finally:
+        # Clean up the temporary file
+        os.unlink(temp_file_path)
+
+@app.get("/embed-ui")
+async def embed_ui():
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>File Embedding</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <script>
+            function handleDrop(event) {
+                event.preventDefault();
+                const file = event.dataTransfer.files[0];
+                uploadFile(file);
+            }
+
+            function handleDragOver(event) {
+                event.preventDefault();
+            }
+
+            function uploadFile(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/embed', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        </script>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+        <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">File Embedding</h2>
+            <div 
+                id="dropZone" 
+                class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer"
+                ondrop="handleDrop(event)" 
+                ondragover="handleDragOver(event)"
+            >
+                Drag and drop a file here
+            </div>
+            <pre id="result" class="mt-4 bg-gray-100 p-2 rounded"></pre>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
 @app.get("/verify-detection/{known_class_detection_id}")
 async def verify_detection(request: Request, known_class_detection_id: str, name: str = None, audio_url: str = None):
     html_content = f"""
@@ -323,73 +407,6 @@ async def update_ground_truth(known_class_detection_id: str, ground_truth: bool)
         logger.error(f"Error updating ground truth: {str(e)}")
         raise HTTPException(status_code=500, detail="Error updating ground truth")
 
-@app.get("/latest-updates")
-async def get_latest_updates():
-    try:
-        query = """
-        SELECT * FROM latest_updates
-        ORDER BY cdt_time DESC;
-        """
-        result = db.sync_query(query)
-        print(result)
-        try:
-            def default_serializer(obj):
-                if isinstance(obj, datetime):
-                    return obj.isoformat()
-                raise TypeError(f"Type {obj.__class__.__name__} not serializable")
-
-            json_result = json.dumps(result, default=default_serializer)
-        except (TypeError, ValueError) as e:
-            logger.error(f"Error converting result to JSON: {str(e)}", exc_info=True)
-            json_result = None
-        if json_result:
-            html_content = """
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Latest Updates</title>
-                <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-            </head>
-            <body>
-                <div class="container mx-auto py-8">
-                    <h1 class="text-2xl font-bold mb-4">Latest Updates</h1>
-                    <table class="min-w-full bg-white">
-                        <thead>
-                            <tr>
-                                <th class="py-2 px-4 border-b border-gray-200">Update Type</th>
-                                <th class="py-2 px-4 border-b border-gray-200">Server Time</th>
-                                <th class="py-2 px-4 border-b border-gray-200">Local Time</th>
-                                <th class="py-2 px-4 border-b border-gray-200">Relative Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            """
-            data = json.loads(json_result)
-            for row in data:
-                html_content += f"""
-                            <tr>
-                                <td class="py-2 px-4 border-b border-gray-200">{row[0]}</td>
-                                <td class="py-2 px-4 border-b border-gray-200">{row[1]}</td>
-                                <td class="py-2 px-4 border-b border-gray-200">{row[2]}</td>
-                                <td class="py-2 px-4 border-b border-gray-200">{row[3]}</td>
-                            </tr>
-                """
-            html_content += """
-                        </tbody>
-                    </table>
-                </div>
-            </body>
-            </html>
-            """
-            return HTMLResponse(content=html_content, status_code=200)
-        else:
-            raise HTTPException(status_code=500, detail="Error converting result to JSON")
-    except Exception as e:
-        logger.error(f"Error fetching latest updates: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
 @app.post("/submitBrowserData")
 async def submit_browser_data(request: Request):
     try:
@@ -404,7 +421,7 @@ async def submit_browser_data(request: Request):
 
 @app.get("/map")
 @app.get("/gps")
-async def gps_map(start_date: str = None, end_date: str = None, days: int = 1):
+async def gps_map(request: Request, start_date: str = None, end_date: str = None, days: int = 1):
     try:
         # Determine the time range for GPS data
         end_time = datetime.utcnow()
@@ -435,60 +452,7 @@ async def gps_map(start_date: str = None, end_date: str = None, days: int = 1):
             ]
         }
 
-        # Prepare the HTML content
-        html_content = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>GPS Map</title>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-            <style>
-                #map { height: calc(100vh - 50px); }
-                #slider { width: 100%; }
-            </style>
-            <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
-        </head>
-        <body>
-            <div id="map"></div>
-            <div class="w-full p-4 bg-gray-200">
-                <input id="slider" type="range" min="0" max="100" value="100" class="w-full">
-            </div>
-            <script>
-                const geojson = """ + json.dumps(geojson, default=str) + """;
-                const map = L.map('map').setView([geojson.features[0].geometry.coordinates[0][1], geojson.features[0].geometry.coordinates[0][0]], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                }).addTo(map);
-
-                let geoJsonLayer = L.geoJSON(geojson).addTo(map);
-
-                document.getElementById('slider').addEventListener('input', function(e) {
-                    const value = e.target.value;
-                    const endIndex = Math.floor((value / 100) * geojson.features[0].geometry.coordinates.length);
-                    const slicedGeojson = {
-                        "type": "FeatureCollection",
-                        "features": [
-                            {
-                                "type": "Feature",
-                                "geometry": {
-                                    "type": "LineString",
-                                    "coordinates": geojson.features[0].geometry.coordinates.slice(0, endIndex + 1)
-                                },
-                                "properties": {}
-                            }
-                        ]
-                    };
-                    map.removeLayer(geoJsonLayer);
-                    geoJsonLayer = L.geoJSON(slicedGeojson).addTo(map);
-                });
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content, status_code=200)
+        return templates.TemplateResponse("map.html", {"request": request, "geojson": geojson})
     except Exception as e:
         logger.error(f"Error generating GPS map: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
