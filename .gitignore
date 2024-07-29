@@ -340,5 +340,7 @@ llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
 docker-compose_AI_test_setups.yml
 
 realtime/__pycache__/
+whisper_streaming/faster-distil-whisper-large-v3/
+llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
 
 *.llamafile

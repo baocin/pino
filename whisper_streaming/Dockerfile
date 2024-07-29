@@ -55,7 +55,7 @@ CMD ["python3.11", "whisper_server.py", \
      "--model", "large-v3", \
     # "--model", "base.en", \
      "--backend", "faster-whisper", \
-     "--model_dir", "./faster-distil-whisper-large-v3", \
+    #  "--model_dir", "./faster-distil-whisper-large-v3", \
      "--silence-size", "2.0", \
      "--silence-threshold", "0.01", \
      "--min-chunk-size", "1", \
