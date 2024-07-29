@@ -60,9 +60,7 @@ class GpsService : Service(), LocationListener {
             longitude = location.longitude,
             altitude = location.altitude,
             time = location.time
-        ) { statusCode ->
-//            AppState.gpsHttpStatusCodes.add(statusCode)
-        }
+        )
     }
 
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}

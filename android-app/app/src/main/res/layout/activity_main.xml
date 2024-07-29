@@ -55,7 +55,7 @@
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chart_audio"
                 android:layout_width="match_parent"
-                android:layout_height="141dp" />
+                android:layout_height="100dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -87,7 +87,7 @@
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chart_gps"
                 android:layout_width="match_parent"
-                android:layout_height="141dp" />
+                android:layout_height="100dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -119,7 +119,7 @@
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chart_sensor"
                 android:layout_width="match_parent"
-                android:layout_height="141dp" />
+                android:layout_height="100dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -152,7 +152,7 @@
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chart_photo"
                 android:layout_width="match_parent"
-                android:layout_height="121dp" />
+                android:layout_height="100dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -187,6 +187,34 @@
                 android:layout_height="wrap_content"
                 android:contentDescription="Last Screenshot" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="19dp"
+                android:gravity="center_horizontal|center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/text_auto_screenshot_packets"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Auto Screenshot Packets: none sent yet" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <Switch
+                    android:id="@+id/switch_auto_screenshot_service"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:gravity="center_vertical"
+                    android:showText="false"
+                    android:splitTrack="false" />
+            </LinearLayout>
+
+
             <EditText
                 android:id="@+id/editServerIp"
                 android:layout_width="match_parent"
@@ -194,6 +222,29 @@
                 android:ems="10"
                 android:hint="Server Address"
                 android:inputType="text" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_take_screenshot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="30dp"
+                    android:text="Take screenshot" />
+
+                <ImageView
+                    android:id="@+id/imageView"
+                    android:layout_width="154dp"
+                    android:layout_height="79dp"
+                    android:layout_below="@id/btn_take_screenshot"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="30dp"
+                    android:scaleType="fitCenter" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

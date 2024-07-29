@@ -104,9 +104,7 @@ class AudioService : Service() {
         val compressedData = Zstd.compress(toSend)
         //zstd: Audio size: 640 bytes -> Compressed audio size: 475 byte
         // not going lossless  because I want all granular detail for environment classification
-        webSocketManager.sendAudioData(compressedData) { statusCode ->
-//            AppState.audioHttpStatusCodes.add(statusCode)
-        }
+        webSocketManager.sendAudioData(compressedData)
     }
 
     override fun onDestroy() {

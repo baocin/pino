@@ -15,18 +15,10 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val action = intent.action
         if (action == Intent.ACTION_POWER_CONNECTED) {
             isPlugged = true
-            webSocketManager.sendPowerConnectionStatus(true) { responseCode ->
-//                AppState.powerResponseCodes.add(
-//                    responseCode
-//                )
-            }
+            webSocketManager.sendPowerConnectionStatus(true)
         } else if (action == Intent.ACTION_POWER_DISCONNECTED) {
             isPlugged = false
-            webSocketManager.sendPowerConnectionStatus(false) { responseCode ->
-//                AppState.powerResponseCodes.add(
-//                    responseCode
-//                )
-            }
+            webSocketManager.sendPowerConnectionStatus(false)
         }
     }
 }

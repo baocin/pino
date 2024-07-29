@@ -6,10 +6,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Switch
@@ -32,18 +37,27 @@ import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() {
+    // Core Services
+    private lateinit var cameraService: CameraService
 
-    private val REQUEST_RECORD_AUDIO_PERMISSION = 200
-    private var permissionToRecordAccepted = false
-    private val permissions = arrayOf(Manifest.permission.RECORD_AUDIO)
+
+    private val REQUEST_PERMISSIONS = 100
+    private val permissions = arrayOf(
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.CAMERA,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE
+    )
 
     private lateinit var projectionManager: MediaProjectionManager
+    private var mediaProjection: MediaProjection? = null
     private lateinit var imageViewLastScreenshot: ImageView
     private lateinit var chartAudio: LineChart
     private lateinit var chartGPS: LineChart
     private lateinit var chartScreenshot: LineChart
     private lateinit var chartSensor: LineChart
-    private lateinit var chartPhoto : LineChart
+    private lateinit var chartPhoto: LineChart
     private lateinit var editServerIp: EditText
 
     private val client = OkHttpClient()
@@ -52,95 +66,90 @@ class MainActivity : AppCompatActivity() {
     private val updateHandler = Handler(Looper.getMainLooper())
     private val updateRunnable = object : Runnable {
         override fun run() {
-
-            // Update charts
-            val audioEntries = AppState.audioResponseTimes.takeLast(100).mapIndexed { _, data -> Entry(data.timestamp.toFloat(), data.duration.toFloat()) }
-            val audioDataSet = LineDataSet(audioEntries, "Audio Response Times").apply {
-                color = ContextCompat.getColor(this@MainActivity, R.color.colorPrimary)
-                valueTextColor = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
-            }
-            chartAudio.data = LineData(audioDataSet)
-            chartAudio.invalidate()
-
-            val gpsEntries = AppState.gpsResponseTimes.takeLast(100).mapIndexed { _, data -> Entry(data.timestamp.toFloat(), data.duration.toFloat()) }
-            val gpsDataSet = LineDataSet(gpsEntries, "GPS Response Times").apply {
-                color = ContextCompat.getColor(this@MainActivity, R.color.colorPrimary)
-                valueTextColor = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
-            }
-            chartGPS.data = LineData(gpsDataSet)
-            chartGPS.invalidate()
-
-            val sensorEntries = AppState.sensorResponseTimes.takeLast(100).mapIndexed { _, data -> Entry(data.timestamp.toFloat(), data.duration.toFloat()) }
-            val sensorDataSet = LineDataSet(sensorEntries, "Sensor Response Times").apply {
-                color = ContextCompat.getColor(this@MainActivity, R.color.colorPrimary)
-                valueTextColor = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
-            }
-            chartSensor.data = LineData(sensorDataSet)
-            chartSensor.invalidate()
-
-            val photoEntries = AppState.photoResponseTimes.takeLast(100).mapIndexed { _, data -> Entry(data.timestamp.toFloat(), data.duration.toFloat()) }
-            val photoDataSet = LineDataSet(photoEntries, "Photo Response Times").apply {
-                color = ContextCompat.getColor(this@MainActivity, R.color.colorPrimary)
-                valueTextColor = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
-            }
-            chartPhoto.data = LineData(photoDataSet)
-            chartPhoto.invalidate()
-
-            val elapsedTimeInSeconds = (System.currentTimeMillis() - AppState.startTime) / 1000.0
-            val audioKBPerSecond = String.format("%.2f", (AppState.totalAudioBytesTransferred / 1024.0) / elapsedTimeInSeconds).toDouble()
-            val gpsKBPerSecond = String.format("%.2f", (AppState.totalGpsBytesTransferred / 1024.0) / elapsedTimeInSeconds).toDouble()
-            val screenshotKBPerSecond = String.format("%.2f", (AppState.totalScreenshotBytesTransferred / 1024.0) / elapsedTimeInSeconds).toDouble()
-            val photoKBPerSecond = String.format("%.2f", (AppState.totalPhotoBytesTransferred / 1024.0) / elapsedTimeInSeconds).toDouble()
-            val sensorKBPerSecond = String.format("%.2f", (AppState.totalSensorBytesTransferred / 1024.0) / elapsedTimeInSeconds).toDouble()
-
-            findViewById<TextView>(R.id.text_audio_packets).text = "Audio Packets: $audioKBPerSecond KB/s (Sent: ${AppState.audioResponseTimes.size})"
-            findViewById<TextView>(R.id.text_gps_packets).text = "GPS Packets: $gpsKBPerSecond KB/s (Sent: ${AppState.gpsResponseTimes.size})"
-            findViewById<TextView>(R.id.text_screenshot_packets).text = "Screenshot Packets: $screenshotKBPerSecond KB/s (Sent: ${AppState.screenshotResponseTimes.size})"
-            findViewById<TextView>(R.id.text_sensor_packets).text = "Sensor Packets: $sensorKBPerSecond KB/s (Sent: ${AppState.sensorResponseTimes.size})"
-            findViewById<TextView>(R.id.text_photo_packets).text = "Photo Packets: $photoKBPerSecond KB/s (Sent: ${AppState.photoResponseTimes.size})"
-
-
-            // Check heartbeat
-            val request = Request.Builder()
-                .url("http://${AppState.serverIp}:${AppState.serverPort}/heartbeat")
-                .build()
-
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        statusTextView.text = e.message
-                        AppState.isConnected = false
-                    }
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    runOnUiThread {
-                        val jsonResponse = JSONObject(response.body?.string())
-                        statusTextView.text = jsonResponse.getString("status")
-                        if (response.isSuccessful) {
-                            AppState.isConnected = true
-                        } else {
-                            AppState.isConnected = false
-                        }
-                        response.close()
-                    }
-                }
-            })
-
+            // updateCharts()
+            // updatePacketInfo()
+            // checkHeartbeat()
             updateHandler.postDelayed(this, 1000) // Update every second
         }
     }
 
+    private fun updateCharts() {
+        updateChart(chartAudio, AppState.audioResponseTimes, "Audio Response Times")
+        updateChart(chartGPS, AppState.gpsResponseTimes, "GPS Response Times")
+        updateChart(chartSensor, AppState.sensorResponseTimes, "Sensor Response Times")
+        updateChart(chartPhoto, AppState.photoResponseTimes, "Photo Response Times")
+    }
+
+    private fun updateChart(chart: LineChart, responseTimes: List<ResponseTime>, label: String) {
+        val entries = responseTimes.takeLast(100).mapIndexed { _, data -> Entry(data.timestamp.toFloat(), data.duration.toFloat()) }
+        val dataSet = LineDataSet(entries, label).apply {
+            color = ContextCompat.getColor(this@MainActivity, R.color.colorPrimary)
+            valueTextColor = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
+        }
+        chart.data = LineData(dataSet)
+        chart.invalidate()
+    }
+
+    private fun updatePacketInfo() {
+        val elapsedTimeInSeconds = (System.currentTimeMillis() - AppState.startTime) / 1000.0
+        updatePacketText(R.id.text_audio_packets, AppState.totalAudioBytesTransferred, AppState.audioResponseTimes.size, "Audio", elapsedTimeInSeconds)
+        updatePacketText(R.id.text_gps_packets, AppState.totalGpsBytesTransferred, AppState.gpsResponseTimes.size, "GPS", elapsedTimeInSeconds)
+        updatePacketText(R.id.text_screenshot_packets, AppState.totalScreenshotBytesTransferred, AppState.screenshotResponseTimes.size, "AutoScreenshot", elapsedTimeInSeconds)
+        updatePacketText(R.id.text_sensor_packets, AppState.totalSensorBytesTransferred, AppState.sensorResponseTimes.size, "Sensor", elapsedTimeInSeconds)
+        updatePacketText(R.id.text_photo_packets, AppState.totalPhotoBytesTransferred, AppState.photoResponseTimes.size, "Photo", elapsedTimeInSeconds)
+    }
+
+    private fun updatePacketText(viewId: Int, totalBytes: Long, packetCount: Int, packetType: String, elapsedTimeInSeconds: Double) {
+        val kbPerSecond = String.format("%.2f", (totalBytes / 1024.0) / elapsedTimeInSeconds).toDouble()
+        findViewById<TextView>(viewId).text = "$packetType Packets: $kbPerSecond KB/s (Sent: $packetCount)"
+    }
+
+    private fun checkHeartbeat() {
+        val request = Request.Builder()
+            .url("http://${AppState.serverIp}:${AppState.serverPort}/heartbeat")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    statusTextView.text = e.message
+                    AppState.isConnected = false
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                runOnUiThread {
+                    val jsonResponse = response.body?.string()?.let { JSONObject(it) }
+                    if (jsonResponse != null) {
+                        statusTextView.text = jsonResponse.getString("status")
+                    }
+                    AppState.isConnected = response.isSuccessful
+                    response.close()
+                }
+            }
+        })
+    }
+
     private val screenCaptureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val intent = Intent(this, ScreenshotService::class.java).apply {
+            mediaProjection = projectionManager.getMediaProjection(result.resultCode, result.data!!)
+            val intent = Intent(this, ImageSyncService::class.java).apply {
                 putExtra("mediaProjectionIntent", result.data)
             }
             startService(intent)
+
+            // Start AutoScreenshotService
+            if (AppState.isAutoScreenshotServiceEnabled) {
+                val autoScreenshotIntent = Intent(this, AutoScreenshotService::class.java).apply {
+                    putExtra("mediaProjectionIntent", result.data)
+                }
+                startService(autoScreenshotIntent)
+            }
         }
     }
 
     private lateinit var overlayManager: OverlayManager
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -163,11 +172,6 @@ class MainActivity : AppCompatActivity() {
         updateHandler.post(updateRunnable) // Start updating packet counts every second
 
         requestPermissions()
-
-        // Ensure permissions are granted before calling requestScreenCapture()
-        if (permissionToRecordAccepted && AppState.isScreenshotServiceEnabled) {
-            requestScreenCapture()
-        }
 
         // Update isAudioServiceEnabled based on the switch state
         val switchAudioService = findViewById<Switch>(R.id.switch_audio_service)
@@ -204,48 +208,48 @@ class MainActivity : AppCompatActivity() {
             AppState.isPhotoServiceEnabled = isChecked
         }
 
+        val switchAutoScreenshotService = findViewById<Switch>(R.id.switch_auto_screenshot_service)
+        switchAutoScreenshotService.isChecked = AppState.isAutoScreenshotServiceEnabled
+        switchAutoScreenshotService.setOnCheckedChangeListener { _, isChecked ->
+            AppState.isAutoScreenshotServiceEnabled = isChecked
+        }
 
         editServerIp = findViewById(R.id.editServerIp)
         editServerIp.setText(AppState.serverUrl)
         editServerIp.isEnabled = false
 
-        // todo: allow editing (split on : and reassign to serverIp and serverPort in AppState)
-//        editServerIp.setOnEditorActionListener { v, actionId, _ ->
-//            if (actionId == EditorInfo.IME_ACTION_DONE) {
-//                val newServerIp = v.text.toString()
-//                AppState.setServerIpToSharedPreferences(newServerIp)
-//                Log.d("MainActivity", newServerIp)
-//                Log.d("MainActivity", "New server IP set: ${AppState.serverIp}")
-//                true
-//            } else {
-//                false
-//            }
-//        }
-//        editServerIp.setOnFocusChangeListener { _, hasFocus ->
-//            if (!hasFocus) {
-//                val newServerIp = editServerIp.text.toString()
-//                AppState.setServerIpToSharedPreferences(newServerIp)
-//                Log.d("MainActivity", "New server IP set: ${AppState.serverIp}")
-//            }
-//        }
+        // Add a button to take a screenshot
+        val button = findViewById<Button>(R.id.btn_take_screenshot)
+        button.setOnClickListener {
+            val b: Bitmap = Screenshot.takeScreenshotOfRootView(imageViewLastScreenshot)
+            imageViewLastScreenshot.setImageBitmap(b)
+            findViewById<View>(R.id.imageView).setBackgroundColor(Color.parseColor("#999999"))
+        }
+
+
+
+        // Initialize CameraService
+        cameraService = CameraService(this, this)
+        requestPermissions()
+        cameraService.initializeCamera(isFront = true) // or false for back camera
+        cameraService.takePhotoAndGetBase64 {
+            Log.d("CameraService", "Photo taken: $it")
+            
+            // imageViewLastScreenshot.setImageBitmap(b)
+            // findViewById<View>(R.id.imageView).setBackgroundColor(Color.parseColor("#999999"))
+        }
     }
 
-//    private fun updatePacketCounts() {
-//        val currentTime = System.currentTimeMillis()
-//        val elapsedTimeInSeconds = (currentTime - AppState.startTime) / 1000.0
-//
-//    }
-
     private fun requestPermissions() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION)
+        val permissionsToRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }.toTypedArray()
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsToRequest, REQUEST_PERMISSIONS)
         } else {
-            permissionToRecordAccepted = true
             setupServices()
+            requestScreenCapture()
         }
     }
 
@@ -255,25 +259,21 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        permissionToRecordAccepted = requestCode == REQUEST_RECORD_AUDIO_PERMISSION &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED
-
-        if (permissionToRecordAccepted) {
-            setupServices()
-            if (AppState.isScreenshotServiceEnabled) {
+        if (requestCode == REQUEST_PERMISSIONS) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                setupServices()
                 requestScreenCapture()
+            } else {
+                // Handle the case where permissions are not granted
+                finish() // Close the app if permissions are not granted
             }
-        } else {
-            finish() // Close the app if permission is not granted
         }
     }
 
     private fun setupServices() {
-        if (permissionToRecordAccepted) {
-            // Services are now handled by ForegroundService
-            val serviceIntent = Intent(this, ForegroundService::class.java)
-            ContextCompat.startForegroundService(this, serviceIntent)
-        }
+        // Services are now handled by ForegroundService
+        val serviceIntent = Intent(this, ForegroundService::class.java)
+        ContextCompat.startForegroundService(this, serviceIntent)
     }
 
     private fun requestScreenCapture() {
@@ -285,4 +285,18 @@ class MainActivity : AppCompatActivity() {
         updateHandler.removeCallbacks(updateRunnable) // Stop updating packet counts
         super.onDestroy()
     }
+
+    // companion object Screenshot {
+    //     private fun takeScreenshot(view: View): Bitmap {
+    //         view.isDrawingCacheEnabled = true
+    //         view.buildDrawingCache(true)
+    //         val b = Bitmap.createBitmap(view.drawingCache)
+    //         view.isDrawingCacheEnabled = false
+    //         return b
+    //     }
+
+    //     fun takeScreenshotOfRootView(v: View): Bitmap {
+    //         return takeScreenshot(v.rootView)
+    //     }
+    // }
 }

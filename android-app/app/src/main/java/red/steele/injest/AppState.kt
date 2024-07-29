@@ -49,6 +49,8 @@ object AppState {
     var isForegroundServiceEnabled: Boolean = true
     var isNotificationInterceptorServiceEnabled: Boolean = true
     var isPhotoServiceEnabled : Boolean = true
+    var isAutoScreenshotServiceEnabled: Boolean = true
+    var isImageSyncServiceEnabled: Boolean = true
 
     var isConnected : Boolean = true
 
@@ -92,18 +94,6 @@ object AppState {
         val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
         return sharedPreferences.getString("REALTIME_SERVER_IP", defaultServerIp) ?: defaultServerIp
     }
-
-//    fun setServerIpToSharedPreferences(newIp: String) {
-//        Log.d("AppState", "New ip: ${AppState.defaultServerIp}")
-//
-//        val sharedPreferences =
-//            context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-//        with(sharedPreferences.edit()) {
-//            putString("SERVER_IP", newIp)
-//            apply()
-//        }
-//        serverIp = newIp
-//    }
 }
 
 data class ResponseTime(val timestamp: Long, val status : Long, val duration: Long)

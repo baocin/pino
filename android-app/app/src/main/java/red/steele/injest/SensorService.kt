@@ -136,9 +136,7 @@ class SensorService : Service(), SensorEventListener {
     }
 
     private fun sendSensorDataBatchToServer() {
-        webSocketManager.sendSensorDataList(sensorDataBatch) { statusCode ->
-//            AppState.sensorHttpStatusCodes.add(statusCode)
-        }
+        webSocketManager.sendSensorDataList(sensorDataBatch)
         sensorDataBatch.clear()
     }
 

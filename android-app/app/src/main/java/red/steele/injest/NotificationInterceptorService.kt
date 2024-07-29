@@ -24,11 +24,7 @@ class NotificationInterceptorService : NotificationListenerService() {
         sbn?.let {
             val notificationText = it.notification.extras.getString("android.text").toString()
             Log.d(TAG, "Notification received: $notificationText")
-            webSocketManager.sendNotificationEvent(notificationText) { responseCode ->
-//                AppState.notificationResponseCodes.add(
-//                    responseCode
-//                )
-            }
+            webSocketManager.sendNotificationEvent(notificationText)
             Log.d(TAG, "Notification event sent to WebSocket: $notificationText")
         }
     }

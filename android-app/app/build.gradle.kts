@@ -49,17 +49,14 @@ android {
     }
 }
 
-
 dependencies {
-//    implementation("org.webrtc:google-webrtc:1.0.32006")
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0");
-implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.android.material:material:1.6.1")
     implementation("com.github.luben:zstd-jni:1.5.6-3@aar")
     implementation("io.getstream:stream-webrtc-android:1.1.2")
     implementation("org.zeromq:jeromq:0.6.0")
-//    implementation("com.google.mediapipe:solution-core:0.10.14")
     implementation("com.google.mediapipe:tasks-core:0.20230731")
     implementation("com.google.mediapipe:tasks-vision:0.20230731")
     implementation("com.github.majorkik:SparkLineLayout:1.0.1")
@@ -73,7 +70,6 @@ implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.appcompat:appcompat:1.6.1")
-//    implementation("androidx.media3:media3-common:1.3.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
