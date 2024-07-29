@@ -345,7 +345,7 @@ async def verify_detection(request: Request, known_class_detection_id: str, name
                     }})
                 }});
                 if (response.ok) {{
-                    alert('Ground truth updated successfully');
+                    window.close();
                 }} else {{
                     alert('Failed to update ground truth');
                 }}
