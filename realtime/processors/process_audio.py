@@ -63,60 +63,6 @@ class AudioProcessor:
         self.whisper_url = "ws://whisper-streaming:43007/"
         self.connect_to_whisper()
 
-    def on_message(self, ws, message):
-        logger.info(f"Received message from whisper-streaming: {message}")
-        # Process the received transcription here
-
-    def on_error(self, ws, error):
-        logger.error(f"WebSocket error: {error}")
-
-    def on_close(self, ws, close_status_code, close_msg):
-        logger.info("WebSocket connection closed")
-
-    def on_open(self, ws):
-        logger.info("Opened connection to whisper-streaming")
-
-    def connect_to_whisper(self):
-        try:
-            websocket.enableTrace(True)
-            self.whisper_ws = create_connection(self.whisper_url,
-                                                     on_open=self.on_open,
-                                                     on_message=self.on_message,
-                                                     on_error=self.on_error,
-                                                     on_close=self.on_close)
-            print(self.whisper_ws.recv())
-            print("Sending 'Hello, World'...")
-            self.whisper_ws.send("Hello, World")
-            print("Sent")
-            print("Receiving...")
-            result =  self.whisper_ws.recv()
-            print("Received '%s'" % result)
-            self.whisper_ws.close()
-            logger.info("Connected to whisper-streaming WebSocket")
-        except Exception as e:
-            logger.error(f"Failed to connect to whisper-streaming: {e}")
-            self.whisper_ws = None
-
-    def send_audio_to_whisper(self, audio_data):
-        if self.whisper_ws is None:
-            print("+++++++++++++++++++++++ Connecting to whisper-streaming")
-            self.connect_to_whisper()
-        
-        if self.whisper_ws:
-            try:
-                print(">>>>>>>>>>>>>>>>>>>>>>> Sending audio to whisper-streaming")
-                self.whisper_ws.send(audio_data, websocket.ABNF.OPCODE_BINARY)
-            except Exception as e:
-                logger.error(f"==================== Error sending audio to whisper-streaming: {e}")
-                self.whisper_ws = None
-
-        # whisper_cache_dir = "whisper_cache"
-        # # self.asr = whisper_online.FasterWhisperASR(lan="en", cache_dir=whisper_cache_dir, model_dir="distil-large-v3")
-        # self.asr = whisper_online.FasterWhisperASR(lan="en", cache_dir=whisper_cache_dir, model_dir="base.en")
-        # self.online = whisper_online.OnlineASRProcessor(self.asr)
-        # self.online.init()
-        # logger.info("Whisper streaming initialized")
-
         # zero shot audio classification
         self.audio_classification_buffer_path = "audio/temp_classification_buffer.wav"
         self.clap_model = ClapModel.from_pretrained("laion/clap-htsat-unfused")

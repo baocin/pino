@@ -11,61 +11,78 @@ version: '3.8'
 # }
 
 services:
-  openedai-vision:
-    build:
-      context: ./openedai-vision
-      dockerfile: Dockerfile
-      args:
-        - VERSION=latest
-    image: ghcr.io/matatonic/openedai-vision
+
+  nominatim-pino:
+    image: mediagis/nominatim:4.4
+    container_name: nominatim-pino
+    shm_size: '1gb'
     env_file:
       - ./.env
     volumes:
-      - ./openedai-vision/hf_home:/app/hf_home
-      - ./openedai-vision/model_zoo:/app/model_zoo
-      - ./openedai-vision/YanweiLi:/app/YanweiLi
-      - ./openedai-vision/model_conf_tests.json:/app/model_conf_tests.json
+      - nominatim-data:/var/lib/postgresql/14/main
     ports:
-      - "5006:5006"
+      - "${NOMINATIM_PORT}:8080"
     networks:
       - pino-network
-    command: ["python", "vision.py", "--model", "vikhyatk/moondream2"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${NOMINATIM_PORT}/status || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
 
-    # runtime: nvidia
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-
-  # florence2:
-  #   container_name: florence2
-  #   build:
-  #     context: ./florence2
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8010:8010"
-  #   networks:
-  #     - pino-network
-    # real time is less important for ocr/image processing
-    # runtime: nvidia
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
-  whisper-streaming:
-    container_name: whisper-streaming
-    build:
-      context: ./whisper_streaming
-      dockerfile: Dockerfile
+  timescaledb-pino:
+    env_file:
+      - ./.env
+    image: timescale/timescaledb-ha:pg16
+    container_name: timescaledb-pino
     ports:
-      - "43007:43007"
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/home/postgres/pgdata/data
+    restart: unless-stopped
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gotify-pino:
+    image: gotify/server
+    container_name: gotify-pino
+    ports:
+      - 9090:80
+    env_file:
+      - ./.env
+    volumes:
+      - gotify-data:/app/data
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:80/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  subscriptions-pino:
+    container_name: subscriptions-pino
+    env_file:
+      - ./.env
+    build:
+      context: .
+      dockerfile: ./subscriptions/Dockerfile
+    volumes:
+      - ./subscriptions:/app/subscriptions
+      - ./libraries:/app/libraries
+    depends_on:
+      timescaledb-pino:
+        condition: service_healthy
+      gotify-pino:
+        condition: service_healthy
+      nominatim-pino:
+        condition: service_healthy
     networks:
       - pino-network
     healthcheck:
@@ -73,7 +90,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      
+
   scheduled-pino:
     container_name: scheduled-pino
     env_file:
@@ -117,17 +134,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # runtime: nvidia
     ports:
       - "${REALTIME_SERVER_PORT}:${REALTIME_SERVER_PORT}"
+    # runtime: nvidia
     # All gpu based processing will be ousourced to other containers so dependencies are easier to manage
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
 
   llamafile:
     container_name: llamafile-Meta-Llama-3.1-8B.Q4_0
