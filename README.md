@@ -1,5 +1,5 @@
 # pino - your friendly background helper agent
-<img width="500" alt="image" src="https://github.com/user-attachments/assets/0f0925dd-49fc-4283-82a0-18c2f6357534">
+<img width="500" alt="image" src="./readme_assets/pino_logo.png">
 
 
 ## Goal
@@ -20,9 +20,9 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 2. Update SERVER_IP in /android-app/app/src/main/assets/env
 3. Setup docker compose (if needed - see [install_dependencies_popos.sh](./install_dependencies_popos.sh) if relevant to you)
   3.1. Download LLM Model - https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile  into /llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
-  3.2. [Optional] Download Different Whisper Model (default whisper v3 large is pretty good though)
-    - https://huggingface.co/distil-whisper/distil-large-v3
+  3.2. [Optional] Download Different Whisper Model (place into /whisper-streaming/models/ and adjust /whisper-streaming/Dockerfile run command accordingly. Remember to remove from /.dockerignore if present!!!!)
     - https://huggingface.co/Systran/faster-distil-whisper-large-v3
+      - Eg. ![VSCode Directory tree of whisper_streaming folder setup](./readme_assets/whisper_streaming_custom_models.png)
 4. Run `sudo docker-compose up`
 5. Load initial database schema from /db/initialize_from_zero.sql
 
@@ -44,12 +44,12 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
   - underlying tech: https://github.com/Mozilla-Ocho/llamafile
   - possible replacement: SGLang - OpenAI compatible inference server (source: https://github.com/sgl-project/sglang)
 
-## Usage after running continuously for 8+ hours
-![image](https://github.com/user-attachments/assets/7d3145e8-d595-41f4-bd8c-c578425eca08)
-![image](https://github.com/user-attachments/assets/2d6abcbc-d522-428c-b3cf-8978a53b1f38)
+## Usage after running continuously for ~8 hours
+![image](./readme_assets/ctop.png)
+![image](./readme_assets/nvtop.png)
 
 #### Dev Machine Specs for context:
-<img width="507" alt="image" src="https://github.com/user-attachments/assets/bdc3b998-7d28-4080-a784-77ea2f5bc95a">
+<img width="507" alt="image" src="./readme_assets/dev_machine_specs.png">
 
 ## Folder Structure (Custom Docker Containers in /docker-compose.yml)
 - `scheduled-injest/`
@@ -93,7 +93,7 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
     - <img width="507" alt="image" src="./readme_assets/label_detection.png"> 
   - Serves 'frontends'
     - `/current_context`
-      - <img width="507" alt="image" src="https://github.com/user-attachments/assets/e1f9f73a-e235-4889-aaeb-e3f133e737c9"> 
+      - <img width="507" alt="image" src="./readme_assets/current_context.png"> 
     - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
       - ![GPS Map Example](./readme_assets/gps-map.png) 
 
