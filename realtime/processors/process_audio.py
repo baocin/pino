@@ -3,19 +3,10 @@ import datetime
 import base64 
 import os 
 import zstd
-import requests
-import time
 import json
 import asyncio
-import torch
-import torchaudio
-import numpy as np
-import re
-import struct
-import pycodec2
 import numpy as np
 import wave
-import schedule
 from fastapi import HTTPException
 import sys
 import os
@@ -26,9 +17,7 @@ import librosa
 import psycopg2
 import io
 import scipy.io.wavfile
-
 from websockets.sync.client import connect
-
 
 # Add the directory containing whisper_streaming to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
@@ -70,8 +59,6 @@ class AudioProcessor:
         self.clap_model = ClapModel.from_pretrained("laion/clap-htsat-unfused")
         self.clap_processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
         self.classification_lock = asyncio.Lock()
-
-        schedule.every(1).minutes.do(self.update_known_classes)
 
     def update_known_classes(self):
         self.known_classes = self.db.get_known_classes(type='audio')
@@ -141,7 +128,7 @@ class AudioProcessor:
 
     async def detect_known_audio_classes(self, audio_path):
         if not os.path.exists(audio_path):
-            logger.warning(f"Audio file not found: {audio_path}")
+            # logger.warning(f"Audio file not found: {audio_path}")
             return
 
         # Load audio data with the required sample rate of 48000

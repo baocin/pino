@@ -13,8 +13,6 @@ import sys
 import base64
 from collections import deque
 from processors.process_audio import AudioProcessor
-from processors.process_screenshot import ScreenshotProcessor
-from processors.process_photo import PhotoProcessor
 from processors.process_image import ImageProcessor
 from libraries.embed.embed import EmbeddingService
 import tempfile
@@ -93,8 +91,6 @@ class NotificationData(BaseModel):
     data: str
 
 audio_processor = AudioProcessor(db)
-screenshot_processor = ScreenshotProcessor(db)
-photo_processor = PhotoProcessor(db)
 image_processor = ImageProcessor(db)
 embedding_service = EmbeddingService()
 
@@ -357,21 +353,27 @@ async def verify_detection(request: Request, known_class_detection_id: str, name
                 const audioPlayer = document.getElementById('audioPlayer');
                 audioPlayer.src = 'data:audio/wav;base64,' + data.audio_base64;
                 audioPlayer.style.display = 'block';
+                audioPlayer.play();
             }}
         </script>
     </head>
-    <body class="bg-gray-100 flex items-center justify-center h-screen">
-        <div class="bg-white p-8 rounded shadow-md">
-            <h2 class="text-2xl font-bold mb-4">Verify Detection</h2>
-            {('<p class="mb-4">Name: ' + name + '</p>') if name else ''}
-            {('<div class="mb-4"><button onclick="fetchAndPlayAudio()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Load Audio</button></div>') if audio_url else ''}
-            <audio id="audioPlayer" controls style="display: none;" class="mb-4"></audio>
+    <body class="bg-gray-100 flex flex-col items-center pt-1/3 h-screen">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Verify Detection</h2>
+            {('<p class="mb-4 text-lg text-gray-700">Name: <span class="font-semibold">' + name + '</span></p>') if name else ''}
+            {('<div class="mb-6"><button onclick="fetchAndPlayAudio()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out">Load Audio</button></div>') if audio_url else ''}
+            <audio id="audioPlayer" controls style="display: none;" class="w-full mb-6"></audio>
             <div class="flex space-x-4">
-                <button onclick="updateGroundTruth(true)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                    True
+                <button onclick="updateGroundTruth(true)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out">
+                    Confirm
                 </button>
-                <button onclick="updateGroundTruth(false)" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
-                    False
+                <button onclick="updateGroundTruth(false)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out">
+                    Reject
+                </button>
+            </div>
+            <div class="mt-4">
+                <button onclick="window.close()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out">
+                    Close
                 </button>
             </div>
         </div>
@@ -389,6 +391,7 @@ async def update_ground_truth(known_class_detection_id: str, ground_truth: bool)
         WHERE id = %s
         """
         db.execute_query(query, (ground_truth, known_class_detection_id))
+        audio_processor.update_known_classes()
         return JSONResponse(status_code=200, content={"message": "Ground truth updated successfully"})
     except Exception as e:
         logger.error(f"Error updating ground truth: {str(e)}")
