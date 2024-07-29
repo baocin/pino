@@ -134,7 +134,7 @@ class DB:
                 time.sleep(1)  # Wait for 1 second before retrying
 
     def get_known_classes(self, type='audio'):
-        result = self.query("SELECT name, embedding, radius_threshold, embedded_data, id FROM known_classes WHERE datatype = %s", (type,))
+        result = self.query("SELECT name, embedding, radius_threshold, embedded_data, id, gotify_priority, ignore FROM known_classes WHERE datatype = %s", (type,))
         
         known_classes = []
         for row in result:

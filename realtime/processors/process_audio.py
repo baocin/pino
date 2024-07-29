@@ -69,6 +69,12 @@ class AudioProcessor:
         self.clap_processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
         self.classification_lock = asyncio.Lock()
 
+        schedule.every(1).minutes.do(self.update_known_classes)
+
+    def update_known_classes(self):
+        self.known_classes = self.db.get_known_classes(type='audio')
+        logger.info("Updated known_classes")
+
     def on_message(self, message):
         logger.info(f"Received message from whisper-streaming: {message}")
         # Process the received transcription here
@@ -108,8 +114,6 @@ class AudioProcessor:
                 if self.sample_rate != 16000:
                     if self.sample_rate < 16000:
                         int16_data = self.upsample_buffer(int16_data, self.sample_rate, 16000)
-                    else:
-                        int16_data = self.downsample_buffer(int16_data, self.sample_rate, 16000)
                 # Send the audio data as an ArrayBuffer
                 self.whisper_ws.send(int16_data.tobytes())
                
@@ -133,28 +137,6 @@ class AudioProcessor:
         
         return result
 
-    def downsample_buffer(self, buffer, sampleRate, outSampleRate):
-        if outSampleRate == sampleRate:
-            return buffer
-        if outSampleRate > sampleRate:
-            raise ValueError('downsampling rate should be smaller than original sample rate')
-        sampleRateRatio = sampleRate / outSampleRate
-        newLength = int(len(buffer) / sampleRateRatio)
-        result = np.zeros(newLength, dtype=np.int16)
-        offsetResult, offsetBuffer = 0, 0
-        while offsetResult < len(result):
-            nextOffsetBuffer = int((offsetResult + 1) * sampleRateRatio)
-            accum = 0
-            count = 0
-            for i in range(offsetBuffer, min(nextOffsetBuffer, len(buffer))):
-                accum += buffer[i]
-                count += 1
-            result[offsetResult] = int(min(1, accum / count) * 0x7FFF)
-            offsetResult += 1
-            offsetBuffer = nextOffsetBuffer
-        return result
-
-    
     async def detect_known_audio_classes(self, audio_path):
         if not os.path.exists(audio_path):
             logger.warning(f"Audio file not found: {audio_path}")
@@ -177,8 +159,7 @@ class AudioProcessor:
             similarity = cosine_similarity(audio_embed, known_embed.reshape(1, -1))[0][0]
 
             if similarity >= known_class['radius_threshold']:
-                
-                # logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
+                logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
                 try:
                     returned_row = self.db.sync_query(
                         """
@@ -211,13 +192,17 @@ class AudioProcessor:
                                 }
                             }
                         }
-                        logger.info(f"Notification extras: {extras}")
-                        send_gotify_message(
-                            title=f"Detected {known_class['name']}", 
-                            message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
-                            extras=extras,
-                            priority=10
-                        )
+                        if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
+                            logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")
+                            return
+                        else:
+                            logger.info(f"Sending gotify message for class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f}) {extras}")
+                            send_gotify_message(
+                                title=f"Detected {known_class['name']}", 
+                                message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
+                                extras=extras,
+                                priority=known_class.get('gotify_priority', 10)
+                            )
                     except Exception as e:
                         logger.error(f"Error sending gotify message: {str(e)}")
 

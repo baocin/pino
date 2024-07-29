@@ -254,30 +254,41 @@ async def get_detection_audio(known_class_detection_id: str):
     except Exception as e:
         logger.error(f"Error retrieving audio data: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
 @app.post("/embed")
 async def embed_file(file: UploadFile = File(...)):
     # Create a temporary file to store the uploaded content
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        contents = await file.read()
-        temp_file.write(contents)
-        temp_file_path = temp_file.name
-
     try:
-        # Determine if it's an image or text file
+        with tempfile.NamedTemporaryFile(delete=False, mode='wb') as temp_file:
+            contents = await file.read()
+            temp_file.write(contents)
+            temp_file_path = temp_file.name
+
+        # Determine if it's an image, audio, or text file
         if file.content_type.startswith('image/'):
             embedding = embedding_service.embed_image(temp_file_path)
+        elif file.content_type.startswith('audio/'):
+            embedding = embedding_service.embed_audio(temp_file_path)
         else:
             # Assume it's a text file
-            with open(temp_file_path, 'r') as f:
-                text = f.read()
+            try:
+                with open(temp_file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+            except UnicodeDecodeError:
+                # If UTF-8 decoding fails, try with latin-1 encoding
+                with open(temp_file_path, 'r', encoding='latin-1') as f:
+                    text = f.read()
             embedding = embedding_service.embed_text([text])
 
         return {"embedding": embedding[0]}  # Return the first (and only) embedding
+    except Exception as e:
+        logger.error(f"Error in embed_file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         # Clean up the temporary file
-        os.unlink(temp_file_path)
+        try:
+            os.unlink(temp_file_path)
+        except Exception as e:
+            logger.error(f"Error deleting temporary file: {str(e)}")
 
 @app.get("/embed-ui")
 async def embed_ui():
