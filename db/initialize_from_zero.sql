@@ -837,6 +837,32 @@ AFTER INSERT ON public.location_transitions
 FOR EACH ROW
 EXECUTE FUNCTION update_device_last_known_location();
 
+
+
+-- Create llm_actions table
+CREATE TABLE public.llm_actions (
+    id UUID DEFAULT uuid_generate_v7() PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    metadata JSONB NOT NULL,
+    device_id INT,
+	success BOOLEAN,
+    CONSTRAINT fk_llm_actions_device FOREIGN KEY (device_id) REFERENCES public.devices(id)
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_llm_actions_created_at ON public.llm_actions(created_at);
+CREATE INDEX idx_llm_actions_device_id ON public.llm_actions(device_id);
+
+COMMENT ON TABLE public.llm_actions IS 'Stores metadata and results of actions performed by LLMs';
+COMMENT ON COLUMN public.llm_actions.id IS 'Unique identifier for the LLM action';
+COMMENT ON COLUMN public.llm_actions.created_at IS 'Timestamp when the action was recorded';
+COMMENT ON COLUMN public.llm_actions.metadata IS 'JSON metadata of what the LLM tried to do';
+COMMENT ON COLUMN public.llm_actions.device_id IS 'Foreign key to the devices table';
+COMMENT ON COLUMN public.llm_actions.success IS 'Whether the action was successful';
+COMMENT ON COLUMN public.llm_actions.result IS 'Text result or output of the LLM action';
+
+
+
 SELECT
 	create_hypertable(
 		'emails',

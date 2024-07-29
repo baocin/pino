@@ -20,6 +20,7 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
 3. Setup docker compose (if needed - see [install_dependencies_popos.sh](./install_dependencies_popos.sh) if relevant to you)
   3.1. Download LLM Model - https://huggingface.co/Mozilla/Meta-Llama-3.1-8B-llamafile  into /llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
 4. Run `sudo docker-compose up`
+5. Load initial database schema from /db/initialize_from_zero.sql
 
 ## Docker Containers
 - Db - TimescaleDB for storing timeseries data
