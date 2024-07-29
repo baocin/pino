@@ -861,6 +861,83 @@ COMMENT ON COLUMN public.llm_actions.device_id IS 'Foreign key to the devices ta
 COMMENT ON COLUMN public.llm_actions.success IS 'Whether the action was successful';
 COMMENT ON COLUMN public.llm_actions.result IS 'Text result or output of the LLM action';
 
+-- Update timestamp columns to timestamptz in browser_data table
+ALTER TABLE public.browser_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in devices table
+ALTER TABLE public.devices
+ALTER COLUMN created_at TYPE timestamptz,
+ALTER COLUMN updated_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in known_locations table
+ALTER TABLE public.known_locations
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in audio_data table
+ALTER TABLE public.audio_data
+ALTER COLUMN taken_at TYPE timestamptz,
+ALTER COLUMN created_at TYPE timestamptz,
+ALTER COLUMN processed_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in gps_data table
+ALTER TABLE public.gps_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in manual_photo_data table
+ALTER TABLE public.manual_photo_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in notification_data table
+ALTER TABLE public.notification_data
+ALTER COLUMN created_at TYPE timestamptz,
+ALTER COLUMN processed_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in screenshot_data table
+ALTER TABLE public.screenshot_data
+ALTER COLUMN created_at TYPE timestamptz,
+ALTER COLUMN processed_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in sensor_data table
+ALTER TABLE public.sensor_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in server_data table
+ALTER TABLE public.server_data
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in sms_data table
+ALTER TABLE public.sms_data
+ALTER COLUMN "timestamp" TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in speech_data table
+ALTER TABLE public.speech_data
+ALTER COLUMN started_at TYPE timestamptz,
+ALTER COLUMN ended_at TYPE timestamptz,
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in wake_word_data table
+ALTER TABLE public.wake_word_data
+ALTER COLUMN "timestamp" TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in websocket_metadata table
+ALTER TABLE public.websocket_metadata
+ALTER COLUMN connected_at TYPE timestamptz,
+ALTER COLUMN disconnected_at TYPE timestamptz,
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in gotify_message_log table
+ALTER TABLE public.gotify_message_log
+ALTER COLUMN sent_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in tweets table
+ALTER TABLE public.tweets
+ALTER COLUMN "timestamp" TYPE timestamptz,
+ALTER COLUMN created_at TYPE timestamptz;
+
+-- Update timestamp columns to timestamptz in tweet_images table
+ALTER TABLE public.tweet_images
+ALTER COLUMN created_at TYPE timestamptz;
 
 
 SELECT

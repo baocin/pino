@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Map</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #map { height: calc(100vh - 50px); }
+        #slider { width: 100%; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <div id="map"></div>
+    <div class="w-full p-4 bg-gray-200">
+        <input id="slider" type="range" min="0" max="100" value="100" class="w-full">
+    </div>
+    <script>
+        const geojson = {{ geojson | tojson }};
+        const map = L.map('map').setView([geojson.features[0].geometry.coordinates[0][1], geojson.features[0].geometry.coordinates[0][0]], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        let geoJsonLayer = L.geoJSON(geojson).addTo(map);
+
+        document.getElementById('slider').addEventListener('input', function(e) {
+            const value = e.target.value;
+            const endIndex = Math.floor((value / 100) * geojson.features[0].geometry.coordinates.length);
+            const slicedGeojson = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": geojson.features[0].geometry.coordinates.slice(0, endIndex + 1)
+                        },
+                        "properties": {}
+                    }
+                ]
+            };
+            map.removeLayer(geoJsonLayer);
+            geoJsonLayer = L.geoJSON(slicedGeojson).addTo(map);
+        });
+    </script>
+</body>
+</html>

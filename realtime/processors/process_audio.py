@@ -207,7 +207,6 @@ class AudioProcessor:
                             },
                             "client::notification": {
                                 "click": {
-                                    # "url": "http://steele.red"
                                     "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}",
                                 }
                             }

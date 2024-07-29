@@ -47,6 +47,28 @@
             <p><strong>Event Based on Known Location:</strong> {{ relevant_calendar_event_based_on_known_location }}</p>
             <p><strong>Events Based on Time:</strong> {{ relevant_calendar_event_based_on_time }}</p>
         </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">Merged Timeline (Last 15 Minutes)</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="py-2">Timestamp</th>
+                        <th class="py-2">Type</th>
+                        <th class="py-2">Text</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in timeline_data %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ event.timestamp }}</td>
+                        <td class="border px-4 py-2">{{ event.type }}</td>
+                        <td class="border px-4 py-2">{{ event.text }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>

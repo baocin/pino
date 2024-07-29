@@ -118,6 +118,50 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
             'relevant_calendar_event_based_on_time': result[0][21]
         }
 
+        # New queries
+        speech_query = """
+        SELECT text, created_at
+        FROM speech_data
+        WHERE created_at > NOW() - INTERVAL '15 minutes'
+        ORDER BY created_at DESC;
+        """
+        ocr_query = """
+        SELECT ocr_result, created_at
+        FROM image_data
+        WHERE created_at > NOW() - INTERVAL '15 minutes'
+        AND ocr_result IS NOT NULL
+        ORDER BY created_at DESC;
+        """
+        location_query = """
+        SELECT DISTINCT ON (dsl.device_id) 
+            dsl.device_id,
+            kl.name AS location_name,
+            dsl.timestamp
+        FROM device_status_log dsl
+        JOIN known_locations kl ON ST_Contains(kl.gps_polygon, ST_SetSRID(ST_Point(ST_X(dsl.location::geometry), ST_Y(dsl.location::geometry)), 4326))
+        WHERE dsl.timestamp > NOW() - INTERVAL '15 minutes'
+        ORDER BY dsl.device_id, dsl.timestamp DESC;
+        """
+        
+        # Execute new queries
+        speech_data = db.sync_query(speech_query)
+        ocr_data = db.sync_query(ocr_query)
+        location_data = db.sync_query(location_query)
+
+        # Merge timeline data
+        timeline_data = []
+        for row in speech_data:
+            timeline_data.append({'type': 'speech', 'text': row[0], 'timestamp': row[1]})
+        for row in ocr_data:
+            timeline_data.append({'type': 'ocr', 'text': row[0], 'timestamp': row[1]})
+        for row in location_data:
+            timeline_data.append({'type': 'location', 'text': row[1], 'timestamp': row[2]})
+        
+        # Sort timeline data by timestamp
+        timeline_data.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        context['timeline_data'] = timeline_data
+
         if json_only:
             return JSONResponse(content=context)
         
