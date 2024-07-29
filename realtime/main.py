@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 import json
 import shutil
+import threading
 import os
 import sys
 import base64
@@ -391,7 +392,7 @@ async def update_ground_truth(known_class_detection_id: str, ground_truth: bool)
         WHERE id = %s
         """
         db.execute_query(query, (ground_truth, known_class_detection_id))
-        audio_processor.update_known_classes()
+        threading.Thread(target=audio_processor.update_known_classes, daemon=True).start()
         return JSONResponse(status_code=200, content={"message": "Ground truth updated successfully"})
     except Exception as e:
         logger.error(f"Error updating ground truth: {str(e)}")

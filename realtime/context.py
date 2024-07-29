@@ -142,11 +142,19 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
         WHERE dsl.timestamp > NOW() - INTERVAL '15 minutes'
         ORDER BY dsl.device_id, dsl.timestamp DESC;
         """
+        known_class_query = """
+        SELECT kc.name, kcd.created_at
+        FROM known_class_detections kcd
+        JOIN known_classes kc ON kcd.known_class_id = kc.id
+        WHERE kcd.created_at > NOW() - INTERVAL '15 minutes'
+        ORDER BY kcd.created_at DESC;
+        """
         
         # Execute new queries
         speech_data = db.sync_query(speech_query)
         ocr_data = db.sync_query(ocr_query)
         location_data = db.sync_query(location_query)
+        known_class_data = db.sync_query(known_class_query)
 
         # Merge timeline data
         timeline_data = []
@@ -156,6 +164,8 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
             timeline_data.append({'type': 'ocr', 'text': row[0], 'timestamp': row[1]})
         for row in location_data:
             timeline_data.append({'type': 'location', 'text': row[1], 'timestamp': row[2]})
+        for row in known_class_data:
+            timeline_data.append({'type': 'known_class', 'text': row[0], 'timestamp': row[1]})
         
         # Sort timeline data by timestamp
         timeline_data.sort(key=lambda x: x['timestamp'], reverse=True)
