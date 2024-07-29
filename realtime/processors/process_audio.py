@@ -60,7 +60,7 @@ class AudioProcessor:
         # initialize streamed whisper
         # Initialize WebSocket connection to whisper-streaming
         self.whisper_ws = None
-        self.whisper_url = "ws://whisper-streaming:43007/"
+        self.whisper_url = "ws://whisper-pino:43007/"
         self.connect_to_whisper()
 
         # zero shot audio classification

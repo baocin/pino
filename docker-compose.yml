@@ -127,8 +127,6 @@ services:
         condition: service_healthy
       whisper-pino:
         condition: service_healthy
-      vision-pino:
-        condition: service_healthy
     networks:
       - pino-network
     healthcheck:
@@ -163,7 +161,8 @@ services:
       - pino-network
     healthcheck:
       # test: ["CMD-SHELL", "python3 -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); result = s.connect_ex(('localhost', 43007)); s.close(); exit(0 if result == 0 else 1)\""]
-      test: ["CMD-SHELL", "exit 0"]
+      # test: ["CMD-SHELL", "exit 0"]
+      test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -197,6 +196,11 @@ services:
       - "5006:5006"
     networks:
       - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pidof python || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
     command: ["python", "vision.py", "--model", "vikhyatk/moondream2"]
 
 volumes:
