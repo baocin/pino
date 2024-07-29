@@ -1,8 +1,5 @@
 # pino - your friendly background helper agent
-<!--- ![image](https://github.com/baocin/pino/assets/5463986/686825fe-1422-4693-a1f1-8ca19c9e4be1) --->
-<!--- <img width="611" alt="image" src="https://github.com/user-attachments/assets/ea4990ba-c56f-446a-808f-e2fab07ee01a"> --->
-<!--- <img width="682" alt="image" src="https://github.com/user-attachments/assets/0b208d45-7476-44cf-92df-fe5d5dc06c95"> --->
-<img width="507" alt="image" src="https://github.com/user-attachments/assets/0f0925dd-49fc-4283-82a0-18c2f6357534">
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/0f0925dd-49fc-4283-82a0-18c2f6357534">
 
 
 ## Goal
@@ -47,6 +44,12 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
   - underlying tech: https://github.com/Mozilla-Ocho/llamafile
   - possible replacement: SGLang - OpenAI compatible inference server (source: https://github.com/sgl-project/sglang)
 
+## Usage after running continuously for 8+ hours
+![image](https://github.com/user-attachments/assets/7d3145e8-d595-41f4-bd8c-c578425eca08)
+![image](https://github.com/user-attachments/assets/2d6abcbc-d522-428c-b3cf-8978a53b1f38)
+
+#### Dev Machine Specs for context:
+<img width="507" alt="image" src="https://github.com/user-attachments/assets/bdc3b998-7d28-4080-a784-77ea2f5bc95a">
 
 ## Folder Structure (Custom Docker Containers in /docker-compose.yml)
 - `scheduled-injest/`
@@ -81,23 +84,18 @@ Pino is designed to seamlessly integrate into your daily life, offering gentle g
     - sensors (accelerometer, gyroscope, magnetometer)
     - screenshots
   - Shows latency (each websocket packet is acknowledged by the server via a message_id)
-  - ![App screenshot showing graphs of latency](./readme_assets/app.png)
-
+  - <img width="507" alt="image" src="./readme_assets/app.png"> 
+  
 - `realtime-ingest/`
   - For real-time data ingestion from Android
   - Runs some lightweight classification (audio classification)
   - Serves endpoints for correcting misclassifications
-    - ![](./readme_assets/label_detection.png)
+    - <img width="507" alt="image" src="./readme_assets/label_detection.png"> 
   - Serves 'frontends'
     - `/current_context`
-      - ![Current Context Example](./readme_assets/current_context.png)
+      - <img width="507" alt="image" src="https://github.com/user-attachments/assets/e1f9f73a-e235-4889-aaeb-e3f133e737c9"> 
     - `/map?start_date=2024-07-20T17:18:01&end_date=2024-07-23T17:18:01`
       - ![GPS Map Example](./readme_assets/gps-map.png) 
-
-## Target Hardware
-- NVIDIA GeForce RTX 2070 (8GB)
-- ~15 TFLOPS at FP16
-- ~7 TFLOPS at FP32
 
 ## Contribution
 
