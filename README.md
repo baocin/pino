@@ -1,5 +1,6 @@
 # pino - your friendly background helper agent
-![image](https://github.com/baocin/pino/assets/5463986/686825fe-1422-4693-a1f1-8ca19c9e4be1)
+<!--- ![image](https://github.com/baocin/pino/assets/5463986/686825fe-1422-4693-a1f1-8ca19c9e4be1) --->
+<img width="611" alt="image" src="https://github.com/user-attachments/assets/ea4990ba-c56f-446a-808f-e2fab07ee01a">
 
 ## Goal
 An early prototype for a behind-the-scenes autonomous agent that helps the user by suggesting real-time information when appropriate. Think (consentual) behavioral modification, second-order conditioning, and subtle nudges towards desired outcomes. Pino aims to be a personal AI assistant that learns from your behavior and environment to provide timely, relevant suggestions and insights.
