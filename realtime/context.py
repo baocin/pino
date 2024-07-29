@@ -38,7 +38,7 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
                 WHEN d.speed > 1000 THEN 'aircraft'
                 ELSE 'unknown'
             END AS movement_type,
-            EXTRACT(EPOCH FROM (now() - d.last_movement)) / 60 AS minutes_since_last_movement,
+            ABS(EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - d.last_movement AT TIME ZONE 'UTC'))) / 60 AS minutes_since_last_movement,
             d.last_known_address::json->>'street' AS street,
             d.last_known_address::json->>'city' AS city,
             d.last_known_address::json->>'country' AS country,
@@ -48,7 +48,11 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
              JOIN known_locations kl ON lt.location_id = kl.id
              WHERE lt.device_id = d.id AND lt.created_at > now() - interval '24 hours') AS visited_known_locations_last_24h,
             (SELECT COUNT(*) FROM emails e WHERE e.date_received > now() - interval '24 hours') AS emails_received_last_24h,
-            (SELECT COUNT(*) FROM calendar_events ce WHERE ce.start_time > now() AND ce.start_time < now() + interval '24 hours') AS upcoming_events_next_24h,
+            (SELECT COUNT(*) FROM calendar_events ce 
+             WHERE ce.start_time > now() 
+               AND ce.start_time < now() + interval '24 hours'
+               AND ce.summary NOT ILIKE '%Forecast%'
+               AND ce.summary NOT ILIKE '%work%') AS upcoming_events_next_24h,
             (SELECT STRING_AGG(DISTINCT 
                 ce.summary || ' (' || 
                 CASE 
