@@ -518,6 +518,14 @@ CREATE TABLE public.known_classes (
     CONSTRAINT known_audio_classes_pk PRIMARY KEY (id)
 );
 
+ALTER TABLE public.known_classes
+ADD COLUMN gotify_priority INT DEFAULT 5,
+ADD COLUMN ignore BOOLEAN DEFAULT FALSE;
+
+COMMENT ON COLUMN public.known_classes.gotify_priority IS 'Priority level for Gotify notifications (1-10, default 5)';
+COMMENT ON COLUMN public.known_classes.ignore IS 'Flag to ignore this class in detection processes';
+
+
 ALTER TABLE public.known_classes ADD CONSTRAINT known_classes_unique_name UNIQUE ("name");
 COMMENT ON COLUMN public.known_classes.radius_theshold IS 'Definitely not the best way to represent the boundary between true and false for this class buuuuut it should work.';
 
