@@ -219,41 +219,17 @@ async def get_detection_audio(known_class_detection_id: str):
 
         if not result:
             raise HTTPException(status_code=404, detail="Detection not found or not audio type")
-
         audio_data = result[0][0]
 
-        # Add WAVE RIFF header
-        sample_rate = 48000  # Assuming 48kHz sample rate, adjust if different
-        channels = 1  # Assuming mono, adjust if stereo
-        bits_per_sample = 16  # Assuming 16-bit audio, adjust if different
-        import struct
-        header = struct.pack('<4sI4s4sIHHIIHH4sI',
-            b'RIFF',
-            36 + len(audio_data),
-            b'WAVE',
-            b'fmt ',
-            16,
-            1,
-            channels,
-            sample_rate,
-            sample_rate * channels * bits_per_sample // 8,
-            channels * bits_per_sample // 8,
-            bits_per_sample,
-            b'data',
-            len(audio_data)
-        )
-
-        # Combine header and audio data
-        wav_data = header + audio_data
-
         # Convert the WAV data to base64
-        audio_base64 = base64.b64encode(wav_data).decode('utf-8')
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
 
         return JSONResponse(content={"audio_base64": audio_base64})
 
     except Exception as e:
         logger.error(f"Error retrieving audio data: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
 @app.post("/embed")
 async def embed_file(file: UploadFile = File(...)):
     # Create a temporary file to store the uploaded content

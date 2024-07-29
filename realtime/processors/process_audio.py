@@ -24,6 +24,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import logging
 import librosa
 import psycopg2
+import io
+import scipy.io.wavfile
 
 from websockets.sync.client import connect
 
@@ -161,6 +163,11 @@ class AudioProcessor:
             if similarity >= known_class['radius_threshold']:
                 logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
                 try:
+                    # Convert audio data to WAV format
+                    with io.BytesIO() as wav_buffer:
+                        scipy.io.wavfile.write(wav_buffer, sr, audio_data)
+                        wav_data = wav_buffer.getvalue()
+
                     returned_row = self.db.sync_query(
                         """
                         INSERT INTO known_class_detections 
@@ -170,10 +177,11 @@ class AudioProcessor:
                         """,
                         (known_class['id'],
                         float(similarity),  # Ensure similarity is a Python float
-                        psycopg2.Binary(audio_data.tobytes()),  # Convert numpy array to bytes
+                        psycopg2.Binary(wav_data),  # Store WAV data as binary
                         'audio',
                         json.dumps({
                             'audio_start_time': self.audio_start_time,
+                            'sample_rate': sr,  # Include sample rate in metadata
                         }),
                         json.dumps(audio_embed.squeeze().tolist())  # Convert numpy array to JSON string
                         )
@@ -182,15 +190,21 @@ class AudioProcessor:
 
 
                     try:
+                        # https://gotify.net/docs/msgextras
                         extras = {
                             "client::display": {
                                 "contentType": "text/plain"
                             },
                             "client::notification": {
                                 "click": {
-                                    "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}",
+                                    "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
                                 }
-                            }
+                            },
+                            # "android::action": {
+                            #     "onReceive": {
+                            #         "intentUrl": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+                            #     }
+                            # }
                         }
                         if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
                             logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")

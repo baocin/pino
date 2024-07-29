@@ -16,10 +16,10 @@ GOTIFY_AUTH_TOKEN = os.getenv("GOTIFY_AUTH_TOKEN")
 def send_gotify_message(title, message, priority=10, extras=None):
     url = f"{GOTIFY_URL}/message?token={GOTIFY_AUTH_TOKEN}"
     
-    if extras and "client::notification" in extras and "click" in extras["client::notification"]:
-        click_url = extras["client::notification"]["click"].get("url")
-        if click_url:
-            extras["client::notification"]["click"]["url"] = f"{os.getenv('GOTIFY_CLICK_DESTINATION_BASE_URL')}{click_url}"
+    # if extras and "client::notification" in extras and "click" in extras["client::notification"]:
+    #     click_url = extras["client::notification"]["click"].get("url")
+    #     if click_url:
+    #         extras["client::notification"]["click"]["url"] = f"{os.getenv('GOTIFY_CLICK_DESTINATION_BASE_URL')}{click_url}"
     
     data = {
         'title': title,
