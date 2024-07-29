@@ -344,3 +344,5 @@ whisper_streaming/faster-distil-whisper-large-v3/
 llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile
 
 *.llamafile
+whisper_streaming/model_cache
+whisper_streaming/models

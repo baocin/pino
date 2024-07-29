@@ -167,7 +167,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s # wait 15 seconds for the warm up, don't actually care about the health
-
+    volumes:
+      - ./whisper_streaming/models:/app/models
     runtime: nvidia
     deploy:
       resources:

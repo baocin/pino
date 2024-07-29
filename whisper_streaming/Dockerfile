@@ -55,45 +55,14 @@ CMD ["python3.11", "whisper_server.py", \
      "--model", "large-v3", \
     # "--model", "base.en", \
      "--backend", "faster-whisper", \
-    #  "--model_dir", "./faster-distil-whisper-large-v3", \
+    #  "--model_dir", "/app/models/distil-whisper-large-v3", \
+     "--model_dir", "/app/models/faster-distil-whisper-large-v3", \
      "--silence-size", "2.0", \
      "--silence-threshold", "0.01", \
      "--min-chunk-size", "1", \
      "--task", "transcribe", \
      "--lan", "en", \
-    #  "--vad", \
+     "--vad", \
      "--buffer_trimming", "sentence", \
      "--buffer_trimming_sec", "30", \
      "--model_cache_dir", "/app/model_cache"]
-
-
-# CMD ["python3.11", "whisper_online_server.py", \
-#      "--host", "localhost", \
-#      "--port", "43001", \
-#      "--model", "large-v3", \
-#      "--backend", "faster-whisper", \
-#      "--model_dir", "./faster-distil-whisper-large-v3", \
-#      "--silence-size", "2.0", \
-#      "--silence-threshold", "0.01", \
-#      "--min-chunk-size", "1", \
-#      "--task", "transcribe", \
-#      "--lan", "en", \
-#      "--vad", \
-#      "--buffer_trimming", "sentence", \
-#      "--buffer_trimming_sec", "30", \
-#      "--model_cache_dir", "/app/model_cache"]
-
-# CMD ["python3.11", "whisper_online_server.py", \
-#     #  "--host", "0.0.0.0", \
-#     #  "--port", "43007", \
-#      "--model", "large-v3", \
-#      "--backend", "faster-whisper", \
-#      "--model_dir", "./faster-distil-whisper-large-v3", \
-#      "--min-chunk-size", "1", \
-#      "--model_cache_dir", "/app/model_cache", \
-#      "--task", "transcribe", \
-#      "--lan", "en", \
-#      "--vad", \
-#      "--buffer_trimming", "sentence", \
-#      "--buffer_trimming_sec", "30", \
-#      "--warmup-file", "sample.wav"]
