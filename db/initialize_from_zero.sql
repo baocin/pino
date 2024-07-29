@@ -567,9 +567,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to run the function periodically
-CREATE TRIGGER trigger_delete_unverified_detections
-AFTER INSERT ON public.known_class_detections
-EXECUTE FUNCTION delete_unverified_detections();
+-- CREATE TRIGGER trigger_delete_unverified_detections
+-- AFTER INSERT ON public.known_class_detections
+-- EXECUTE FUNCTION delete_unverified_detections();
+
+DROP TRIGGER IF EXISTS trigger_delete_unverified_detections ON public.known_class_detections;
 
 -- Index to improve performance of the delete operation
 CREATE INDEX idx_known_class_detections_ground_truth_created_at
