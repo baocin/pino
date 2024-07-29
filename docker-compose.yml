@@ -125,7 +125,9 @@ services:
         condition: service_healthy
       gotify-pino:
         condition: service_healthy
-      whisper-streaming:
+      whisper-pino:
+        condition: service_healthy
+      vision-pino:
         condition: service_healthy
     networks:
       - pino-network
@@ -139,8 +141,8 @@ services:
     # runtime: nvidia
     # All gpu based processing will be ousourced to other containers so dependencies are easier to manage
 
-  llamafile:
-    container_name: llamafile-Meta-Llama-3.1-8B.Q4_0
+  llamafile-pino:
+    container_name: llamafile-pino
     image: iverly/llamafile-docker:latest
     ports:
       - "8082:8080"
@@ -150,8 +152,8 @@ services:
       - pino-network
     # -ngl 9999 to enable GPU offloading
 
-  whisper-streaming:
-    container_name: whisper-streaming
+  whisper-pino:
+    container_name: whisper-pino
     build:
       context: ./whisper_streaming
       dockerfile: Dockerfile
@@ -176,7 +178,8 @@ services:
               count: all
               capabilities: [gpu]
 
-  openedai-vision:
+  vision-pino:
+    container_name: vision-pino
     build:
       context: ./openedai-vision
       dockerfile: Dockerfile

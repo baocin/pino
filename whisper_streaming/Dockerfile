@@ -52,16 +52,16 @@ EXPOSE 43007
 CMD ["python3.11", "whisper_server.py", \
      "--host", "0.0.0.0", \
      "--port", "43007", \
-    #  "--model", "large-v3", \
-    "--model", "base.en", \
+     "--model", "large-v3", \
+    # "--model", "base.en", \
      "--backend", "faster-whisper", \
-    #  "--model_dir", "./faster-distil-whisper-large-v3", \
+     "--model_dir", "./faster-distil-whisper-large-v3", \
      "--silence-size", "2.0", \
      "--silence-threshold", "0.01", \
      "--min-chunk-size", "1", \
      "--task", "transcribe", \
      "--lan", "en", \
-     "--vad", \
+    #  "--vad", \
      "--buffer_trimming", "sentence", \
      "--buffer_trimming_sec", "30", \
      "--model_cache_dir", "/app/model_cache"]
