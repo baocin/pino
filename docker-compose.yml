@@ -139,15 +139,15 @@ services:
     # runtime: nvidia
     # All gpu based processing will be ousourced to other containers so dependencies are easier to manage
 
-  llamafile-pino:
-    container_name: llamafile-pino
-    image: iverly/llamafile-docker:latest
-    ports:
-      - "8082:8080"
-    volumes:
-      - ./llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile:/model
-    networks:
-      - pino-network
+  # llamafile-pino:
+  #   container_name: llamafile-pino
+  #   image: iverly/llamafile-docker:latest
+  #   ports:
+  #     - "8082:8080"
+  #   volumes:
+  #     - ./llamafile/model/Meta-Llama-3.1-8B.Q4_0.llamafile:/model
+  #   networks:
+  #     - pino-network
     # -ngl 9999 to enable GPU offloading
 
   whisper-pino:
