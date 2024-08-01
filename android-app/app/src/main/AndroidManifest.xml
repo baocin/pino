@@ -92,10 +92,9 @@
             android:name=".ForegroundService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="location|microphone"
+            android:foregroundServiceType="location|microphone|mediaProjection"
             android:screenOrientation="portrait"
         />
-<!--        |mediaProjection-->
 
         <service android:name=".NotificationInterceptorService" android:exported="true" android:screenOrientation="portrait">
             <intent-filter>

@@ -122,7 +122,7 @@ class WebSocketManager(private val serverUrl: String) {
             AppState.totalGpsBytesTransferred += message.toByteArray().size
         }
     }
-    fun sendImageData(imageData: ByteArray, isScreenshot: Boolean?, isGenerated: Boolean?, isManual: Boolean?, isFrontCamera: Boolean?, isRearCamera: Boolean?, imageHash: String?, image_id: Long?) {
+    fun sendImageData(imageData: ByteArray, isScreenshot: Boolean?, isGenerated: Boolean?, isManual: Boolean?, isFrontCamera: Boolean?, isRearCamera: Boolean?, imageHash: String?, imageId: String?) {
         Log.d("WebSocketManager", "sendImageData captured and sent. Size: ${imageData.size} bytes")
 
         if (AppState.shouldSendData()) {
@@ -136,7 +136,7 @@ class WebSocketManager(private val serverUrl: String) {
                 if (isFrontCamera == true) append(""", "is_front_camera": $isFrontCamera""")
                 if (isRearCamera == true) append(""", "is_rear_camera": $isRearCamera""")
                 if (imageHash != null) append(""", "image_hash": "$imageHash"""")
-                if (image_id != null) append(""", "image_id": $image_id"""")
+                if (imageId != null) append(""", "image_id": $imageId"""")
                 append("}")
             }
 

@@ -24,28 +24,44 @@ class AutoScreenshotService : Service() {
     private lateinit var webSocketManager: WebSocketManager
     private val handler = Handler(Looper.getMainLooper())
     private val screenshotInterval = 1000L // 1 second
+    private var mediaProjection: MediaProjection? = null
+    private var mediaProjectionManager: MediaProjectionManager? = null
+    private var mediaProjectionIntent: Intent? = null
 
     override fun onCreate() {
         super.onCreate()
         webSocketManager = WebSocketManager(AppState.serverUrl)
+        mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        Log.d("AutoScreenshotService", "Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val mediaProjectionIntent = intent?.getParcelableExtra<Intent>("mediaProjectionIntent")
+        Log.d("AutoScreenshotService", "onStartCommand called")
+        mediaProjectionIntent = intent?.getParcelableExtra("mediaProjectionIntent")
         if (mediaProjectionIntent != null) {
-            val mediaProjection = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            val mediaProjectionObject = mediaProjection.getMediaProjection(RESULT_OK, mediaProjectionIntent)
-            startTakingScreenshots(mediaProjectionObject)
+            Log.d("AutoScreenshotService", "MediaProjectionIntent received")
+            startTakingScreenshots()
         } else {
+            Log.e("AutoScreenshotService", "MediaProjectionIntent is null, stopping service")
             stopSelf()
         }
         return START_NOT_STICKY
     }
 
-    private fun startTakingScreenshots(mediaProjection: MediaProjection) {
+    private fun startTakingScreenshots() {
+        Log.d("AutoScreenshotService", "Starting to take screenshots")
         handler.post(object : Runnable {
+            @RequiresApi(Build.VERSION_CODES.R)
             override fun run() {
-                takeScreenshot(mediaProjection)
+                mediaProjection = mediaProjectionManager?.getMediaProjection(RESULT_OK, mediaProjectionIntent!!)
+                mediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                    override fun onStop() {
+                        Log.d("AutoScreenshotService", "MediaProjection stopped")
+                        handler.removeCallbacksAndMessages(null)
+                        stopSelf()
+                    }
+                }, handler)
+                takeScreenshot(mediaProjection!!)
                 handler.postDelayed(this, screenshotInterval)
             }
         })
@@ -53,6 +69,7 @@ class AutoScreenshotService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun takeScreenshot(mediaProjection: MediaProjection) {
+        Log.d("AutoScreenshotService", "Taking screenshot")
         // Get the current display metrics
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels
@@ -71,6 +88,7 @@ class AutoScreenshotService : Service() {
         // Capture the screen content
         val image = imageReader.acquireLatestImage()
         if (image != null) {
+            Log.d("AutoScreenshotService", "Image captured successfully")
             // Convert the image to a bitmap
             val planes = image.planes
             val buffer = planes[0].buffer
@@ -99,34 +117,38 @@ class AutoScreenshotService : Service() {
             val imageHash = hashBytes.joinToString("") { "%02x".format(it) }
 
             // Send the screenshot data with metadata
-            webSocketManager.sendImageData(
-                imageData = compressedData,
-                isScreenshot = true,
-                isGenerated = true,
-                isManual = false,
-                isFrontCamera = false,
-                isRearCamera = false,
-                imageHash = imageHash
-            )
+            Log.d("AutoScreenshotService", "Screenshot processed. Size: ${compressedData.size} bytes, Hash: $imageHash")
+//            webSocketManager.sendImageData(
+//                imageData = compressedData,
+//                isScreenshot = true,
+//                isGenerated = true,
+//                isManual = false,
+//                isFrontCamera = false,
+//                isRearCamera = false,
+//                imageHash = imageHash,
+//                imageId = imageHash
+//            )
 
             // Clean up resources
             image.close()
             imageReader.close()
             virtualDisplay.release()
 
-            // Log the screenshot capture
-            Log.d("AutoScreenshotService", "Screenshot captured and sent. Size: ${compressedData.size} bytes")
+            Log.d("AutoScreenshotService", "Screenshot captured and processed successfully")
         } else {
             Log.e("AutoScreenshotService", "Failed to capture screenshot: Image is null")
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
+        Log.d("AutoScreenshotService", "onBind called")
         return null
     }
 
     override fun onDestroy() {
+        Log.d("AutoScreenshotService", "Service being destroyed")
         handler.removeCallbacksAndMessages(null)
+        mediaProjection?.stop()
         super.onDestroy()
     }
 

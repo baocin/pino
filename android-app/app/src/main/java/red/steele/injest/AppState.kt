@@ -49,8 +49,8 @@ object AppState {
     var isForegroundServiceEnabled: Boolean = true
     var isNotificationInterceptorServiceEnabled: Boolean = true
     var isPhotoServiceEnabled : Boolean = true
-    var isAutoScreenshotServiceEnabled: Boolean = true
-    var isImageSyncServiceEnabled: Boolean = true
+    var isAutoScreenshotServiceEnabled: Boolean = false
+    var isImageSyncServiceEnabled: Boolean = false
 
     var isConnected : Boolean = true
 
