@@ -16,9 +16,19 @@ realtime/audio/
 libraries/whisper_streaming/venv/
 libraries/whisper_streaming/__pycache__
 whisper_streaming/venv
+whisper_streaming/venv/
+whisper_streaming/__pycache__/
 whisper_streaming/__pycache__
+
 florence2/venv
 florence2/__pycache__
+libraries/gotify/venv/
+libraries/embed/venv/
+libraries/embed/__pycache__
+libraries/db/venv/lib/
+libraries/db/venv/
+libraries/llm/venv/
+libraries/llm/__pycache__/
 
 
 # Ignore version control directories

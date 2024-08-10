@@ -31,6 +31,7 @@
             <p><strong>Country:</strong> {{ country }}</p>
             <p><strong>Location Changes (Last 24h):</strong> {{ location_changes_last_24h }}</p>
             <p><strong>Visited Known Locations (Last 24h):</strong> {{ visited_known_locations_last_24h }}</p>
+            <p><strong>Hours at Current Location:</strong> {{ hours_at_current_location }}</p>
         </div>
 
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
@@ -42,6 +43,98 @@
             <p><strong>Brushed Teeth (Last 24h):</strong> {{ "Yes" if brushed_teeth_last_24h else "No" }}</p>
         </div>
 
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Known Classes Detection Times</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="py-2">Class Name</th>
+                        <th class="py-2">Last Detected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for class_name, last_detected in known_classes_relative.items() %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ class_name }}</td>
+                        <td class="border px-4 py-2">{{ last_detected if last_detected else "Never" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">LLM Actions (Last 24h)</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="py-2">ID</th>
+                        <th class="py-2">Created At</th>
+                        <th class="py-2">Metadata</th>
+                        <th class="py-2">Success</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for action in llm_actions %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ action.id }}</td>
+                        <td class="border px-4 py-2">{{ action.created_at }}</td>
+                        <td class="border px-4 py-2">{{ action.metadata }}</td>
+                        <td class="border px-4 py-2">{{ "Yes" if action.success else "No" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">LLM Memories (Last 24h)</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="py-2">ID</th>
+                        <th class="py-2">Created At</th>
+                        <th class="py-2">Content</th>
+                        <th class="py-2">Metadata</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for memory in llm_memories %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ memory.id }}</td>
+                        <td class="border px-4 py-2">{{ memory.created_at }}</td>
+                        <td class="border px-4 py-2">{{ memory.content }}</td>
+                        <td class="border px-4 py-2">{{ memory.metadata }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Documents</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="py-2">ID</th>
+                        <th class="py-2">Created At</th>
+                        <th class="py-2">Title</th>
+                        <th class="py-2">Content</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for document in documents %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ document.id }}</td>
+                        <td class="border px-4 py-2">{{ document.created_at }}</td>
+                        <td class="border px-4 py-2">{{ document.title }}</td>
+                        <td class="border px-4 py-2">{{ document.content }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
         <div class="bg-white shadow-md rounded-lg p-6">
             <h2 class="text-2xl font-semibold mb-4">Relevant Events</h2>
             <p><strong>Event Based on Known Location:</strong> {{ relevant_calendar_event_based_on_known_location }}</p>
@@ -49,7 +142,7 @@
         </div>
 
         <div class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-2xl font-semibold mb-4">Merged Timeline (Last 15 Minutes)</h2>
+            <h2 class="text-2xl font-semibold mb-4">Merged Timeline (Last 24 Hours)</h2>
             <table class="min-w-full bg-white">
                 <thead>
                     <tr>
@@ -63,7 +156,17 @@
                     <tr>
                         <td class="border px-4 py-2">{{ event.timestamp }}</td>
                         <td class="border px-4 py-2">{{ event.type }}</td>
-                        <td class="border px-4 py-2">{{ event.text }}</td>
+                        <td class="border px-4 py-2">
+                            {% if event.type == 'tweet' %}
+                                Tweet ID: {{ event.id }}, Content: {{ event.text }}
+                            {% elif event.type == 'github_repo' %}
+                                Repo ID: {{ event.id }}, Name: {{ event.full_name }}
+                            {% elif event.type == 'contact' %}
+                                Contact ID: {{ event.id }}, Name: {{ event.name }}, Email: {{ event.email }}, Phone: {{ event.phone }}
+                            {% else %}
+                                {{ event.text }}
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

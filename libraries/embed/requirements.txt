@@ -1,4 +1,4 @@
 fastembed==0.3.3
 numpy==1.26.4
-transformers==4.42.3
+transformers==4.42.4
 librosa==0.10.2.post1

@@ -350,3 +350,13 @@ whisper_streaming/models
 libraries/db/venv/lib/
 
 libraries/llm/venv/
+
+libraries/llm/__pycache__/
+
+florence2/
+
+.aider.input.history
+
+.aider.chat.history.md
+
+.aider.tags.cache.v3/

@@ -66,50 +66,50 @@ services:
       timeout: 5s
       retries: 5
       
-  subscriptions-pino:
-    container_name: subscriptions-pino
-    env_file:
-      - ./.env
-    build:
-      context: .
-      dockerfile: ./subscriptions/Dockerfile
-    volumes:
-      - ./subscriptions:/app/subscriptions
-      - ./libraries:/app/libraries
-    depends_on:
-      timescaledb-pino:
-        condition: service_healthy
-      gotify-pino:
-        condition: service_healthy
-      nominatim-pino:
-        condition: service_healthy
-    networks:
-      - pino-network
-    healthcheck:
-      test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # subscriptions-pino:
+  #   container_name: subscriptions-pino
+  #   env_file:
+  #     - ./.env
+  #   build:
+  #     context: .
+  #     dockerfile: ./subscriptions/Dockerfile
+  #   volumes:
+  #     - ./subscriptions:/app/subscriptions
+  #     - ./libraries:/app/libraries
+  #   depends_on:
+  #     timescaledb-pino:
+  #       condition: service_healthy
+  #     gotify-pino:
+  #       condition: service_healthy
+  #     nominatim-pino:
+  #       condition: service_healthy
+  #   networks:
+  #     - pino-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
 
-  scheduled-pino:
-    container_name: scheduled-pino
-    env_file:
-      - ./.env
-    build:
-      context: .
-      dockerfile: ./scheduled/Dockerfile
-    volumes:
-      - ./scheduled:/app/scheduled
-    depends_on:
-      timescaledb-pino:
-        condition: service_healthy
-    networks:
-      - pino-network
-    healthcheck:
-      test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # scheduled-pino:
+  #   container_name: scheduled-pino
+  #   env_file:
+  #     - ./.env
+  #   build:
+  #     context: .
+  #     dockerfile: ./scheduled/Dockerfile
+  #   volumes:
+  #     - ./scheduled:/app/scheduled
+  #   depends_on:
+  #     timescaledb-pino:
+  #       condition: service_healthy
+  #   networks:
+  #     - pino-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
 
   realtime-pino:
     container_name: realtime-pino

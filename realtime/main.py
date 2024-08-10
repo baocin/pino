@@ -200,8 +200,8 @@ async def heartbeat():
     return JSONResponse(status_code=200, content={"status": "online"})
 
 @app.get("/context")
-async def get_current_context(request: Request, json_only: bool = False):
-    return await get_current_context_logic(request, json_only)
+async def get_current_context(request: Request, json_only: bool = False, hours_ago: int = 24):
+    return await get_current_context_logic(request, json_only, hours_ago)
 
 @app.get("/get-detection-audio/{known_class_detection_id}")
 async def get_detection_audio(known_class_detection_id: str):

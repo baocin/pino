@@ -1,7 +1,7 @@
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 import os
 from libraries.db.db import DB
@@ -17,7 +17,7 @@ db = DB(
     password=os.getenv("POSTGRES_PASSWORD")
 )
 
-async def get_current_context_logic(request: Request, json_only: bool = False):
+async def get_current_context_logic(request: Request, json_only: bool = False, hours_ago: int = 24):
     try:
         query = """
         SELECT 
@@ -85,7 +85,10 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
             (SELECT STRING_AGG(ce.summary, ', ')
              FROM calendar_events ce
              WHERE ce.start_time BETWEEN now() - interval '3 hours' AND now() + interval '3 hours'
-             LIMIT 5) AS relevant_calendar_event_based_on_time
+             LIMIT 5) AS relevant_calendar_event_based_on_time,
+            (SELECT EXTRACT(EPOCH FROM (now() - MAX(lt.created_at))) / 3600
+             FROM location_transitions lt
+             WHERE lt.device_id = d.id) AS hours_at_current_location
         FROM
             devices d
         LEFT JOIN known_locations kl ON kl.id = d.last_known_location_id
@@ -119,20 +122,24 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
             'brushed_teeth_last_24h': result[0][19],
             'relevant_calendar_event_based_on_known_location': result[0][20],
             'last_brushed_teeth_relative': f"{int((datetime.now(timezone.utc) - result[0][18]).total_seconds() / 3600)} hours ago" if result[0][18] else None,
-            'relevant_calendar_event_based_on_time': result[0][21]
+            'relevant_calendar_event_based_on_time': result[0][21],
+            'hours_at_current_location': f"{round(float(result[0][22]), 1)} hours" if result[0][22] is not None else None
         }
 
+        # Define the time range for context
+        time_range = timedelta(hours=hours_ago)  # Default to 1 day
+        
         # New queries
         speech_query = """
         SELECT text, created_at
         FROM speech_data
-        WHERE created_at > NOW() - INTERVAL '15 minutes'
+        WHERE created_at > NOW() - INTERVAL %s
         ORDER BY created_at DESC;
         """
         ocr_query = """
         SELECT ocr_result, created_at
         FROM image_data
-        WHERE created_at > NOW() - INTERVAL '15 minutes'
+        WHERE created_at > NOW() - INTERVAL %s
         AND ocr_result IS NOT NULL
         ORDER BY created_at DESC;
         """
@@ -143,44 +150,204 @@ async def get_current_context_logic(request: Request, json_only: bool = False):
             dsl.timestamp
         FROM device_status_log dsl
         JOIN known_locations kl ON ST_Contains(kl.gps_polygon, ST_SetSRID(ST_Point(ST_X(dsl.location::geometry), ST_Y(dsl.location::geometry)), 4326))
-        WHERE dsl.timestamp > NOW() - INTERVAL '15 minutes'
+        WHERE dsl.timestamp > NOW() - INTERVAL %s
         ORDER BY dsl.device_id, dsl.timestamp DESC;
         """
         known_class_query = """
         SELECT kc.name, kcd.created_at
         FROM known_class_detections kcd
         JOIN known_classes kc ON kcd.known_class_id = kc.id
-        WHERE kcd.created_at > NOW() - INTERVAL '15 minutes'
+        WHERE kcd.created_at > NOW() - INTERVAL %s
         ORDER BY kcd.created_at DESC;
+        """
+        all_known_classes_query = """
+        SELECT 
+            kc.name, 
+            MAX(kcd.created_at) AS last_detected,
+            EXTRACT(EPOCH FROM (now() - MAX(kcd.created_at))) / 3600 AS hours_since_last_detected
+        FROM known_class_detections kcd
+        JOIN known_classes kc ON kcd.known_class_id = kc.id
+        GROUP BY kc.name;
+        """
+        
+        llm_actions_query = """
+        SELECT id, created_at, metadata, success
+        FROM public.llm_actions
+        WHERE created_at > NOW() - INTERVAL %s
+        ORDER BY created_at DESC;
+        """
+
+        llm_memories_query = """
+        SELECT id, created_at, content, metadata
+        FROM public.llm_memories
+        WHERE created_at > NOW() - INTERVAL %s
+        ORDER BY created_at DESC;
+        """
+
+        tweets_query = """
+        SELECT id, "timestamp", tweet_text as text
+        FROM public.tweets
+        WHERE "timestamp" > NOW() - INTERVAL %s
+        ORDER BY "timestamp" DESC;
+        """
+
+        github_repos_query = """
+        SELECT id, starred_at, full_name
+        FROM public.github_starred_repos
+        WHERE starred_at > NOW() - INTERVAL %s
+        ORDER BY starred_at DESC;
+        """
+
+        contacts_query = """
+        SELECT id, created_at, full_name as name, email, phone
+        FROM public.contacts
+        WHERE created_at > NOW() - INTERVAL %s
+        ORDER BY created_at DESC;
+        """
+
+        documents_query = """
+        SELECT id, created_at, name, content
+        FROM public.documents
+        ORDER BY created_at DESC;
         """
         
         # Execute new queries
-        speech_data = db.sync_query(speech_query)
-        ocr_data = db.sync_query(ocr_query)
-        location_data = db.sync_query(location_query)
-        known_class_data = db.sync_query(known_class_query)
+        speech_data = db.sync_query(speech_query, (time_range,)) if speech_query else None
+        ocr_data = db.sync_query(ocr_query, (time_range,)) if ocr_query else None
+        location_data = db.sync_query(location_query, (time_range,)) if location_query else None
+        known_class_data = db.sync_query(known_class_query, (time_range,)) if known_class_query else None
+        all_known_classes_data = db.sync_query(all_known_classes_query) if all_known_classes_query else None
+        llm_actions_data = db.sync_query(llm_actions_query, (time_range,)) if llm_actions_query else None
+        llm_memories_data = db.sync_query(llm_memories_query, (time_range,)) if llm_memories_query else None
+        tweets_data = db.sync_query(tweets_query, (time_range,)) if tweets_query else None
+        github_repos_data = db.sync_query(github_repos_query, (time_range,)) if github_repos_query else None
+        contacts_data = db.sync_query(contacts_query, (time_range,)) if contacts_query else None
+        documents_data = db.sync_query(documents_query) if documents_query else None
 
         # Merge timeline data
         timeline_data = []
-        for row in speech_data:
-            timeline_data.append({'type': 'speech', 'text': row[0], 'timestamp': row[1]})
-        for row in ocr_data:
-            timeline_data.append({'type': 'ocr', 'text': row[0], 'timestamp': row[1]})
-        for row in location_data:
-            timeline_data.append({'type': 'location', 'text': row[1], 'timestamp': row[2]})
-        for row in known_class_data:
-            timeline_data.append({'type': 'known_class', 'text': row[0], 'timestamp': row[1]})
+        if speech_data:
+            for row in speech_data:
+                if row and len(row) >= 2:
+                    timeline_data.append({'type': 'speech', 'text': row[0], 'timestamp': row[1]})
+        if ocr_data:
+            for row in ocr_data:
+                if row and len(row) >= 2:
+                    timeline_data.append({'type': 'ocr', 'text': row[0], 'timestamp': row[1]})
+        if location_data:
+            for row in location_data:
+                if row and len(row) >= 3:
+                    timeline_data.append({'type': 'location', 'text': row[1], 'timestamp': row[2]})
+        if known_class_data:
+            for row in known_class_data:
+                if row and len(row) >= 2:
+                    timeline_data.append({'type': 'known_class', 'text': row[0], 'timestamp': row[1]})
+        if tweets_data:
+            for row in tweets_data:
+                if row and len(row) >= 3:
+                    timeline_data.append({'type': 'tweet', 'id': row[0], 'text': row[2], 'timestamp': row[1]})
+        if github_repos_data:
+            for row in github_repos_data:
+                if row and len(row) >= 3:
+                    timeline_data.append({'type': 'github_repo', 'id': row[0], 'full_name': row[2], 'timestamp': row[1]})
+        if contacts_data:
+            for row in contacts_data:
+                if row and len(row) >= 5:
+                    timeline_data.append({'type': 'contact', 'id': row[0], 'name': row[2], 'email': row[3], 'phone': row[4], 'timestamp': row[1]})
         
         # Sort timeline data by timestamp
-        timeline_data.sort(key=lambda x: x['timestamp'], reverse=True)
+        if timeline_data:
+            timeline_data.sort(key=lambda x: x.get('timestamp', datetime.min), reverse=True)
 
         context['timeline_data'] = timeline_data
 
+        # TODO: Placeholder until I find a good way to get 'active device id' from the request
+        context['active_device_id'] = 1
+
+        # TODO: pull from database
+        last_llm_call = datetime.now(timezone.utc) - timedelta(minutes=1)
+        time_since_last_call = datetime.now(timezone.utc) - last_llm_call
+        minutes = int(time_since_last_call.total_seconds() / 60)
+        context['last_time_llm_was_called_relative'] = f"{minutes} minutes ago"
+
+        # Add known classes detection times to context
+        known_classes_relative = {}
+        if all_known_classes_data:
+            for row in all_known_classes_data:
+                if row and len(row) >= 3:
+                    class_name = row[0]
+                    hours_since_last_detected = row[2]
+                    if class_name is not None:
+                        if hours_since_last_detected is not None:
+                            known_classes_relative[class_name] = f"{int(hours_since_last_detected)} hours ago"
+                        else:
+                            known_classes_relative[class_name] = None
+
+        context['known_classes_relative'] = known_classes_relative
+
+        # Add LLM actions to context
+        context['llm_actions'] = []
+        if llm_actions_data:
+            for row in llm_actions_data:
+                if row and len(row) >= 4:
+                    context['llm_actions'].append({
+                        'id': str(row[0]) if row[0] is not None else None,
+                        'created_at': row[1],
+                        'metadata': row[2],
+                        'success': row[3]
+                    })
+
+        # Add LLM memories to context
+        context['llm_memories'] = []
+        if llm_memories_data:
+            for row in llm_memories_data:
+                if row and len(row) >= 4:
+                    context['llm_memories'].append({
+                        'id': str(row[0]) if row[0] is not None else None,
+                        'created_at': row[1],
+                        'content': row[2],
+                        'metadata': row[3]
+                    })
+
+        # Add documents to context
+        context['documents'] = []
+        if documents_data:
+            for row in documents_data:
+                if row and len(row) >= 4:
+                    context['documents'].append({
+                        'id': str(row[0]) if row[0] is not None else None,
+                        'created_at': row[1],
+                        'title': row[2],
+                        'content': row[3]
+                    })
+
         if json_only:
+            # Convert datetime objects to ISO format strings
+            for item in context.get('timeline_data', []):
+                if 'timestamp' in item and item['timestamp'] is not None:
+                    item['timestamp'] = item['timestamp'].isoformat()
+            
+            # Convert datetime objects in known_classes_relative
+            for class_name, time_ago in context.get('known_classes_relative', {}).items():
+                if time_ago is not None:
+                    # Extract the number of hours from the string
+                    hours = int(time_ago.split()[0])
+                    # Convert to a relative time string
+                    context['known_classes_relative'][class_name] = f"{hours} hours ago"
+
+            # Convert datetime objects in llm_actions, llm_memories, and documents
+            for action in context.get('llm_actions', []):
+                if 'created_at' in action and action['created_at'] is not None:
+                    action['created_at'] = action['created_at'].isoformat()
+            for memory in context.get('llm_memories', []):
+                if 'created_at' in memory and memory['created_at'] is not None:
+                    memory['created_at'] = memory['created_at'].isoformat()
+            for document in context.get('documents', []):
+                if 'created_at' in document and document['created_at'] is not None:
+                    document['created_at'] = document['created_at'].isoformat()
+
             return JSONResponse(content=context)
-        
         return templates.TemplateResponse("current_context.html", {"request": request, **context})
-    
     except Exception as e:
         logger.error(f"Error fetching current context: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching current context: {str(e)}")
