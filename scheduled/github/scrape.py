@@ -32,7 +32,7 @@ class GitHubScrape:
     async def setup(self):
         self.playwright_instance = await async_playwright().start()
         self.browser, self.context = await self.setup_browser(self.playwright_instance)
-        await self.login()
+        # await self.login()
 
     async def login(self):
         page = await self.context.new_page()

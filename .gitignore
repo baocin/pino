@@ -361,3 +361,5 @@ florence2/
 .aider.chat.history.md
 
 .aider.tags.cache.v3/
+
+scheduled/tweets/venv/
