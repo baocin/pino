@@ -72,7 +72,7 @@ if __name__ == "__main__":
     from emails.injest import EmailInjest
     from contacts.injest import ContactsInjest
     from budget.injest import BudgetInjest
-    from tweets.injest import TweetInjest
+    from scheduled.tweets.injest import TweetInjest
     from github.scrape import GitHubScrape
 
     def fetch_budget_task():
@@ -119,15 +119,15 @@ if __name__ == "__main__":
         await github_scrape.setup()
         await github_scrape.fetch_github_stars()
 
-    # manager.add_task(7200, fetch_budget_task, manager.fetch_budget_lock)
-    # manager.add_task(120, fetch_email_task, manager.fetch_email_lock)
-    # manager.add_task(1200, fetch_calendar_task, manager.fetch_calendar_lock)
-    # manager.add_task(60, record_server_stats_task, manager.record_server_stats_lock)
-    # manager.add_task(150, fetch_contacts_task, manager.fetch_contacts_lock)
-    # manager.add_task(120, fetch_tweets_task, manager.fetch_tweets_lock)
-    # manager.add_task(90, fetch_github_task, manager.fetch_github_lock)
+    seconds_in_hour = 3600
 
-    manager.add_task(5, fetch_tweets_task, manager.fetch_tweets_lock)
+    manager.add_task(seconds_in_hour * 12, fetch_budget_task, manager.fetch_budget_lock)
+    manager.add_task(60, fetch_email_task, manager.fetch_email_lock)
+    manager.add_task(seconds_in_hour * 0.5, fetch_calendar_task, manager.fetch_calendar_lock)
+    manager.add_task(60, record_server_stats_task, manager.record_server_stats_lock)
+    manager.add_task(seconds_in_hour * 12, fetch_contacts_task, manager.fetch_contacts_lock)
+    manager.add_task(seconds_in_hour * 6, fetch_tweets_task, manager.fetch_tweets_lock)
+    manager.add_task(seconds_in_hour * 6, fetch_github_task, manager.fetch_github_lock)
 
 
     # Write a file to indicate that the service has started

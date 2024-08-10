@@ -11,25 +11,24 @@ version: '3.8'
 # }
 
 services:
-
-  # nominatim-pino:
-  #   image: mediagis/nominatim:4.4
-  #   container_name: nominatim-pino
-  #   shm_size: '1gb'
-  #   env_file:
-  #     - ./.env
-  #   volumes:
-  #     - nominatim-data:/var/lib/postgresql/14/main
-  #   ports:
-  #     - "${NOMINATIM_PORT}:8080"
-  #   networks:
-  #     - pino-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:${NOMINATIM_PORT}/status || exit 1"]
-  #     interval: 5s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 10s
+  nominatim-pino:
+    image: mediagis/nominatim:4.4
+    container_name: nominatim-pino
+    shm_size: '1gb'
+    env_file:
+      - ./.env
+    volumes:
+      - nominatim-data:/var/lib/postgresql/14/main
+    ports:
+      - "${NOMINATIM_PORT}:8080"
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${NOMINATIM_PORT}/status || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
 
   timescaledb-pino:
     env_file:
@@ -66,30 +65,30 @@ services:
       timeout: 5s
       retries: 5
       
-  # subscriptions-pino:
-  #   container_name: subscriptions-pino
-  #   env_file:
-  #     - ./.env
-  #   build:
-  #     context: .
-  #     dockerfile: ./subscriptions/Dockerfile
-  #   volumes:
-  #     - ./subscriptions:/app/subscriptions
-  #     - ./libraries:/app/libraries
-  #   depends_on:
-  #     timescaledb-pino:
-  #       condition: service_healthy
-  #     gotify-pino:
-  #       condition: service_healthy
-  #     nominatim-pino:
-  #       condition: service_healthy
-  #   networks:
-  #     - pino-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
+  subscriptions-pino:
+    container_name: subscriptions-pino
+    env_file:
+      - ./.env
+    build:
+      context: .
+      dockerfile: ./subscriptions/Dockerfile
+    volumes:
+      - ./subscriptions:/app/subscriptions
+      - ./libraries:/app/libraries
+    depends_on:
+      timescaledb-pino:
+        condition: service_healthy
+      gotify-pino:
+        condition: service_healthy
+      nominatim-pino:
+        condition: service_healthy
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   scheduled-pino:
     container_name: scheduled-pino
@@ -111,31 +110,31 @@ services:
       timeout: 5s
       retries: 10
 
-  # realtime-pino:
-  #   container_name: realtime-pino
-  #   env_file:
-  #     - ./.env
-  #   build:
-  #     context: .
-  #     dockerfile: ./realtime/Dockerfile
-  #   volumes:
-  #     - ./realtime:/app/realtime
-  #   depends_on:
-  #     timescaledb-pino:
-  #       condition: service_healthy
-  #     gotify-pino:
-  #       condition: service_healthy
-  #     whisper-pino:
-  #       condition: service_healthy
-  #   networks:
-  #     - pino-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "python3 -c \"import urllib.request; import sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${REALTIME_SERVER_PORT}/heartbeat').getcode() == 200 else 1)\""]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-  #   ports:
-  #     - "${REALTIME_SERVER_PORT}:${REALTIME_SERVER_PORT}"
+  realtime-pino:
+    container_name: realtime-pino
+    env_file:
+      - ./.env
+    build:
+      context: .
+      dockerfile: ./realtime/Dockerfile
+    volumes:
+      - ./realtime:/app/realtime
+    depends_on:
+      timescaledb-pino:
+        condition: service_healthy
+      gotify-pino:
+        condition: service_healthy
+      whisper-pino:
+        condition: service_healthy
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; import sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${REALTIME_SERVER_PORT}/heartbeat').getcode() == 200 else 1)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${REALTIME_SERVER_PORT}:${REALTIME_SERVER_PORT}"
 
   # llamafile-pino:
   #   container_name: llamafile-pino
@@ -148,59 +147,59 @@ services:
   #     - pino-network
     # -ngl 9999 to enable GPU offloading
 
-  # whisper-pino:
-  #   container_name: whisper-pino
-  #   build:
-  #     context: ./whisper_streaming
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "43007:43007"
-  #   networks:
-  #     - pino-network
-  #   healthcheck:
-  #     # test: ["CMD-SHELL", "python3 -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); result = s.connect_ex(('localhost', 43007)); s.close(); exit(0 if result == 0 else 1)\""]
-  #     # test: ["CMD-SHELL", "exit 0"]
-  #     test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 15s # wait 15 seconds for the warm up, don't actually care about the health
-  #   volumes:
-  #     - ./whisper_streaming/models:/app/models
-  #   runtime: nvidia
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [gpu]
+  whisper-pino:
+    container_name: whisper-pino
+    build:
+      context: ./whisper_streaming
+      dockerfile: Dockerfile
+    ports:
+      - "43007:43007"
+    networks:
+      - pino-network
+    healthcheck:
+      # test: ["CMD-SHELL", "python3 -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); result = s.connect_ex(('localhost', 43007)); s.close(); exit(0 if result == 0 else 1)\""]
+      # test: ["CMD-SHELL", "exit 0"]
+      test: ["CMD-SHELL", "pidof python3.11 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s # wait 15 seconds for the warm up, don't actually care about the health
+    volumes:
+      - ./whisper_streaming/models:/app/models
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
-  # vision-pino:
-  #   container_name: vision-pino
-  #   build:
-  #     context: ./openedai-vision
-  #     dockerfile: Dockerfile
-  #     args:
-  #       - VERSION=latest
-  #   image: ghcr.io/matatonic/openedai-vision
-  #   env_file:
-  #     - ./.env
-  #   volumes:
-  #     - ./openedai-vision/hf_home:/app/hf_home
-  #     - ./openedai-vision/model_zoo:/app/model_zoo
-  #     - ./openedai-vision/YanweiLi:/app/YanweiLi
-  #     - ./openedai-vision/model_conf_tests.json:/app/model_conf_tests.json
-  #   ports:
-  #     - "5006:5006"
-  #   networks:
-  #     - pino-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pidof python || exit 1"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 30
-  #   command: ["python", "vision.py", "--model", "vikhyatk/moondream2"]
+  vision-pino:
+    container_name: vision-pino
+    build:
+      context: ./openedai-vision
+      dockerfile: Dockerfile
+      args:
+        - VERSION=latest
+    image: ghcr.io/matatonic/openedai-vision
+    env_file:
+      - ./.env
+    volumes:
+      - ./openedai-vision/hf_home:/app/hf_home
+      - ./openedai-vision/model_zoo:/app/model_zoo
+      - ./openedai-vision/YanweiLi:/app/YanweiLi
+      - ./openedai-vision/model_conf_tests.json:/app/model_conf_tests.json
+    ports:
+      - "5006:5006"
+    networks:
+      - pino-network
+    healthcheck:
+      test: ["CMD-SHELL", "pidof python || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+    command: ["python", "vision.py", "--model", "vikhyatk/moondream2"]
 
 volumes:
   nominatim-data:
