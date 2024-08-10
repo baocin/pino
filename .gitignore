@@ -363,3 +363,7 @@ florence2/
 .aider.tags.cache.v3/
 
 scheduled/tweets/venv/
+
+scheduled/x_session.json
+
+scheduled/github_stars.json
