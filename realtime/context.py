@@ -28,7 +28,11 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
             d.online,
             kl.name AS last_known_location,
             ST_AsText(d.location) AS current_location,
-            ST_Distance(d.location::geography, kl.gps_polygon::geography) AS distance_from_last_known_location,
+            (SELECT ST_Distance(d.location::geography, ltl.location::geography)
+             FROM device_status_log ltl
+             WHERE ltl.device_id = d.id
+             ORDER BY ltl.timestamp DESC
+             LIMIT 1) AS distance_from_last_known_location,
             CASE 
                 WHEN d.speed IS NULL THEN 'unknown'
                 WHEN d.speed <= 0 THEN 'stationary'
@@ -131,10 +135,35 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         
         # New queries
         speech_query = """
-        SELECT text, created_at
-        FROM speech_data
-        WHERE created_at > NOW() - INTERVAL %s
-        ORDER BY created_at DESC;
+        WITH speech_intervals AS (
+            SELECT 
+                text, 
+                created_at,
+                LAG(created_at) OVER (ORDER BY created_at) AS prev_created_at
+            FROM speech_data
+            WHERE created_at > NOW() - INTERVAL %s
+        ),
+        merged_speech AS (
+            SELECT 
+                STRING_AGG(text, ' ') AS text,
+                MIN(created_at) AS start_time,
+                MAX(created_at) AS end_time
+            FROM (
+                SELECT 
+                    text,
+                    created_at,
+                    SUM(CASE 
+                        WHEN prev_created_at IS NULL OR EXTRACT(EPOCH FROM (created_at - prev_created_at)) > 60 
+                        THEN 1 
+                        ELSE 0 
+                    END) OVER (ORDER BY created_at) AS speech_group
+                FROM speech_intervals
+            ) grouped_speech
+            GROUP BY speech_group
+        )
+        SELECT text, start_time AS created_at
+        FROM merged_speech
+        ORDER BY start_time DESC;
         """
         ocr_query = """
         SELECT ocr_result, created_at
