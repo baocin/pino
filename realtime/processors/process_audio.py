@@ -177,7 +177,6 @@ class AudioProcessor:
             result[i] = buffer[sourceIndex]
         
         return result
-
     async def detect_known_audio_classes(self, audio_path):
         if not os.path.exists(audio_path):
             # logger.warning(f"Audio file not found: {audio_path}")
@@ -201,6 +200,28 @@ class AudioProcessor:
 
             if classifier:
                 similarity = classifier.predict_proba(audio_embed)[0][1]
+
+                try:
+                    # Query the gotify_message_log to find the last "sent_at" timestamp
+                    last_sent_at_row = self.db.sync_query(
+                        """
+                        SELECT sent_at FROM gotify_message_log 
+                        ORDER BY sent_at DESC 
+                        LIMIT 1
+                        """
+                    )
+                    if last_sent_at_row:
+                        last_sent_at = last_sent_at_row[0][0]
+                        time_since_last_sent = datetime.datetime.now() - last_sent_at
+
+                        # Check if it has been more than 15 minutes and similarity is > 0.1
+                        if time_since_last_sent.total_seconds() > 900 and similarity > 0.1 and similarity < known_class['radius_threshold']:
+                            # Ask the user to confirm
+                            user_confirmation = self.ask_user_confirmation(known_class, similarity)
+                            if not user_confirmation:
+                                return
+                except Exception as e:
+                    logger.error(f"Error querying gotify_message_log: {str(e)}")
 
                 if similarity >= known_class['radius_threshold']:
                     logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
@@ -230,40 +251,8 @@ class AudioProcessor:
                         )
                         inserted_id = returned_row[0][0]
 
+                        self.send_gotify_notification(known_class, similarity, inserted_id)
 
-                        try:
-                            # https://gotify.net/docs/msgextras
-                            extras = {
-                                "client::display": {
-                                    "contentType": "text/plain"
-                                },
-                                "client::notification": {
-                                    "click": {
-                                        "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
-                                    }
-                                },
-                                # "android::action": {
-                                #     "onReceive": {
-                                #         "intentUrl": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
-                                #     }
-                                # }
-                            }
-                            if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
-                                logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")
-                                return
-                            else:
-                                logger.info(f"Sending gotify message for class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f}) {extras}")
-                                send_gotify_message(
-                                    title=f"Detected {known_class['name']}", 
-                                    message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
-                                    extras=extras,
-                                    priority=known_class.get('gotify_priority', 10)
-                                )
-                        except Exception as e:
-                            logger.error(f"Error sending gotify message: {str(e)}")
-
-                        # logger.info(f"Similarity to {known_class['name']}: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}")
-                        # http://pino.steele.red:8081/verify-detection/1?name=electric_toothbrush&audio_url=http://pino.steele.red:8081/get-detection-audio/1
                     except Exception as e:
                         logger.error(f"Error inserting known class detection: {str(e)}")
 
@@ -271,6 +260,37 @@ class AudioProcessor:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
 
+    def send_gotify_notification(self, known_class, similarity, inserted_id):
+        try:
+            # https://gotify.net/docs/msgextras
+            extras = {
+                "client::display": {
+                    "contentType": "text/plain"
+                },
+                "client::notification": {
+                    "click": {
+                        "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+                    }
+                },
+                # "android::action": {
+                #     "onReceive": {
+                #         "intentUrl": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+                #     }
+                # }
+            }
+            if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
+                logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")
+                return
+            else:
+                logger.info(f"Sending gotify message for class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f}) {extras}")
+                send_gotify_message(
+                    title=f"Detected {known_class['name']}", 
+                    message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
+                    extras=extras,
+                    priority=known_class.get('gotify_priority', 10)
+                )
+        except Exception as e:
+            logger.error(f"Error sending gotify message: {str(e)}")
 
     async def handle_audio_message(self, message, websocket, device_id):
         audio_data_base64 = message.get("data")
