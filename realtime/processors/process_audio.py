@@ -12,6 +12,7 @@ import sys
 import os
 from transformers import ClapModel, ClapProcessor
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn import svm
 import logging
 import librosa
 import psycopg2
@@ -22,6 +23,7 @@ from websockets.sync.client import connect
 # Add the directory containing whisper_streaming to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 from libraries.gotify.gotify import send_gotify_message
+from libraries.db.db import DB
 
 # Set up logging
 log_file = 'process_audio.log'
@@ -60,9 +62,59 @@ class AudioProcessor:
         self.clap_processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
         self.classification_lock = asyncio.Lock()
 
+        # Initialize SVM classifiers for each known class
+        self.svm_classifiers = {}
+        self.train_svm_classifiers()
+
     def update_known_classes(self):
         self.known_classes = self.db.get_known_classes(type='audio')
         logger.info("Updated known_classes")
+        self.train_svm_classifiers()
+
+    def train_svm_classifiers(self):
+        # Query for all known_class_detections with a ground_truth (true or false, not Null)
+        known_class_detections = self.db.sync_query(
+            """
+            SELECT known_class_id, embedding, ground_truth 
+            FROM known_class_detections 
+            WHERE ground_truth IS NOT NULL
+            """
+        )
+
+        # Prepare data for training SVM classifiers
+        class_embeddings = {}
+        for detection in known_class_detections:
+            class_id = detection[0]
+            embedding = np.array(json.loads(detection[1]), dtype=np.float32)
+            ground_truth = detection[2]
+
+            if class_id not in class_embeddings:
+                class_embeddings[class_id] = {'positive': [], 'negative': []}
+
+            if ground_truth:
+                class_embeddings[class_id]['positive'].append(embedding)
+            else:
+                class_embeddings[class_id]['negative'].append(embedding)
+
+        # Train an SVM for each known class
+        for class_id, embeddings in class_embeddings.items():
+            positive_embeddings = embeddings['positive']
+            negative_embeddings = []
+
+            # Use all other classes' embeddings as negative samples
+            for other_class_id, other_embeddings in class_embeddings.items():
+                if other_class_id != class_id:
+                    negative_embeddings.extend(other_embeddings['positive'])
+                    negative_embeddings.extend(other_embeddings['negative'])
+
+            X = positive_embeddings + negative_embeddings
+            y = [1] * len(positive_embeddings) + [0] * len(negative_embeddings)
+
+            classifier = svm.SVC(kernel='linear', probability=True)
+            classifier.fit(X, y)
+            self.svm_classifiers[class_id] = classifier
+
+        logger.info("Trained SVM classifiers for known classes")
 
     def on_message(self, message):
         logger.info(f"Received message from whisper-streaming: {message}")
@@ -144,73 +196,76 @@ class AudioProcessor:
         audio_embed = self.embed_audio(audio_data, sr)
 
         for known_class in self.known_classes:
-            known_embed = np.array(known_class['embedding'], dtype=np.float32)
-            similarity = cosine_similarity(audio_embed, known_embed.reshape(1, -1))[0][0]
+            class_id = known_class['id']
+            classifier = self.svm_classifiers.get(class_id)
 
-            if similarity >= known_class['radius_threshold']:
-                logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
-                try:
-                    # Convert audio data to WAV format
-                    with io.BytesIO() as wav_buffer:
-                        scipy.io.wavfile.write(wav_buffer, sr, audio_data)
-                        wav_data = wav_buffer.getvalue()
+            if classifier:
+                similarity = classifier.predict_proba(audio_embed)[0][1]
 
-                    returned_row = self.db.sync_query(
-                        """
-                        INSERT INTO known_class_detections 
-                        (known_class_id, distance, source_data, source_data_type, metadata, embedding) 
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        RETURNING id
-                        """,
-                        (known_class['id'],
-                        float(similarity),  # Ensure similarity is a Python float
-                        psycopg2.Binary(wav_data),  # Store WAV data as binary
-                        'audio',
-                        json.dumps({
-                            'audio_start_time': self.audio_start_time,
-                            'sample_rate': sr,  # Include sample rate in metadata
-                        }),
-                        json.dumps(audio_embed.squeeze().tolist())  # Convert numpy array to JSON string
-                        )
-                    )
-                    inserted_id = returned_row[0][0]
-
-
+                if similarity >= known_class['radius_threshold']:
+                    logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
                     try:
-                        # https://gotify.net/docs/msgextras
-                        extras = {
-                            "client::display": {
-                                "contentType": "text/plain"
-                            },
-                            "client::notification": {
-                                "click": {
-                                    "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
-                                }
-                            },
-                            # "android::action": {
-                            #     "onReceive": {
-                            #         "intentUrl": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
-                            #     }
-                            # }
-                        }
-                        if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
-                            logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")
-                            return
-                        else:
-                            logger.info(f"Sending gotify message for class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f}) {extras}")
-                            send_gotify_message(
-                                title=f"Detected {known_class['name']}", 
-                                message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
-                                extras=extras,
-                                priority=known_class.get('gotify_priority', 10)
-                            )
-                    except Exception as e:
-                        logger.error(f"Error sending gotify message: {str(e)}")
+                        # Convert audio data to WAV format
+                        with io.BytesIO() as wav_buffer:
+                            scipy.io.wavfile.write(wav_buffer, sr, audio_data)
+                            wav_data = wav_buffer.getvalue()
 
-                    # logger.info(f"Similarity to {known_class['name']}: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}")
-                    # http://pino.steele.red:8081/verify-detection/1?name=electric_toothbrush&audio_url=http://pino.steele.red:8081/get-detection-audio/1
-                except Exception as e:
-                    logger.error(f"Error inserting known class detection: {str(e)}")
+                        returned_row = self.db.sync_query(
+                            """
+                            INSERT INTO known_class_detections 
+                            (known_class_id, distance, source_data, source_data_type, metadata, embedding) 
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            RETURNING id
+                            """,
+                            (known_class['id'],
+                            float(similarity),  # Ensure similarity is a Python float
+                            psycopg2.Binary(wav_data),  # Store WAV data as binary
+                            'audio',
+                            json.dumps({
+                                'audio_start_time': self.audio_start_time,
+                                'sample_rate': sr,  # Include sample rate in metadata
+                            }),
+                            json.dumps(audio_embed.squeeze().tolist())  # Convert numpy array to JSON string
+                            )
+                        )
+                        inserted_id = returned_row[0][0]
+
+
+                        try:
+                            # https://gotify.net/docs/msgextras
+                            extras = {
+                                "client::display": {
+                                    "contentType": "text/plain"
+                                },
+                                "client::notification": {
+                                    "click": {
+                                        "url": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+                                    }
+                                },
+                                # "android::action": {
+                                #     "onReceive": {
+                                #         "intentUrl": f"http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/verify-detection/{inserted_id}?name={known_class['name']}&audio_url=http://{os.getenv('SERVER_URL')}:{os.getenv('SERVER_PORT')}/get-detection-audio/{inserted_id}"
+                                #     }
+                                # }
+                            }
+                            if known_class.get('ignore', False) or known_class.get('gotify_priority', 10) < 0:
+                                logger.info(f"Ignoring class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f})")
+                                return
+                            else:
+                                logger.info(f"Sending gotify message for class detection: {known_class['name']} ({similarity:.4f} out of {known_class['radius_threshold']:.4f}) {extras}")
+                                send_gotify_message(
+                                    title=f"Detected {known_class['name']}", 
+                                    message=f"Similarity: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}",
+                                    extras=extras,
+                                    priority=known_class.get('gotify_priority', 10)
+                                )
+                        except Exception as e:
+                            logger.error(f"Error sending gotify message: {str(e)}")
+
+                        # logger.info(f"Similarity to {known_class['name']}: {similarity:.4f}, Threshold: {known_class['radius_threshold']:.4f}")
+                        # http://pino.steele.red:8081/verify-detection/1?name=electric_toothbrush&audio_url=http://pino.steele.red:8081/get-detection-audio/1
+                    except Exception as e:
+                        logger.error(f"Error inserting known class detection: {str(e)}")
 
             # Delete the audio classification buffer file
             if os.path.exists(audio_path):
@@ -316,4 +371,3 @@ class AudioProcessor:
 
         with open(file_path, "ab") as audio_file:
             audio_file.write(audio_data)
-
