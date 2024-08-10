@@ -192,10 +192,10 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         """
 
         github_repos_query = """
-        SELECT id, starred_at, full_name
-        FROM public.github_starred_repos
-        WHERE starred_at > NOW() - INTERVAL %s
-        ORDER BY starred_at DESC;
+        SELECT id, created_at, repo_name
+        FROM public.github_stars
+        WHERE created_at > NOW() - INTERVAL %s
+        ORDER BY created_at DESC;
         """
 
         contacts_query = """
