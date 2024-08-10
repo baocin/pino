@@ -57,7 +57,7 @@ class EmailInjest:
             combined_messages = list(set(unseen_messages[0].split() + all_messages[0].split()))
             messages = (status, combined_messages)
 
-            logging.info(f"combined_messages: {combined_messages}")
+            # logging.info(f"combined_messages: {combined_messages}")
             
             # Convert messages to a list of email IDs
             email_ids = unseen_messages[0].split()
