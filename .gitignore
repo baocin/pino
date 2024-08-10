@@ -354,6 +354,7 @@ libraries/llm/venv/
 libraries/llm/__pycache__/
 
 florence2/
+.aider*
 
 .aider.input.history
 
