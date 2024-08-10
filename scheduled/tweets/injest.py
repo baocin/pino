@@ -48,25 +48,45 @@ class TweetInjest:
 
 
     async def login(self):
+        print("Tweet_injest Starting login process")
         x_session_file = "./x_session.json"
         if os.path.exists(x_session_file):
+            print("Tweet_injest Session file exists, attempting to restore session")
             with open(x_session_file, 'r') as f:
                 session_data = json.load(f)
             await self.context.add_cookies(session_data['cookies'])
-            logging.info("Session restored from file.")
+            print("Tweet_injest Session restored from file")
             page = await self.context.new_page()
             await page.goto(X_URL)
         else:
+            print("Tweet_injest Session file does not exist, performing manual login")
             page = await self.context.new_page()
             await page.goto(X_LOGIN_URL)
-            await human_like_typing(page, 'input[name="text"]', os.getenv('X_USERNAME'))
-            await page.click('span:has-text("Next")')
-            await human_like_typing(page, 'input[name="password"]', os.getenv('X_PASSWORD'))
-            await page.click('span:has-text("Log in")')
-            await page.wait_for_load_state("networkidle")
-            await page.wait_for_url(X_LOGIN_REDIRECT_URL, timeout=30000)
-            logging.info("Successfully logged in to X")
-            await save_session(self.context, x_session_file)
+            print("Tweet_injest Username input")
+            await human_like_typing(page, 'div[aria-labelledby="modal-header"] input[name="text"]', os.getenv('X_USERNAME'))
+            await page.click('div[aria-labelledby="modal-header"] span:has-text("Next")')
+
+
+            await page.wait_for_timeout(5000)
+            login_button = await page.query_selector('div[aria-labelledby="modal-header"] span:has-text("Log in")')
+            if login_button:
+                print("Tweet_injest Login button found, clicking it")
+                await human_like_typing(page, 'div[aria-labelledby="modal-header"] input[name="password"]', os.getenv('X_PASSWORD'))
+                await page.click('div[aria-labelledby="modal-header"] span:has-text("Log in")')
+            else:
+                print("Tweet_injest Login button not found, entering phone number and password")
+                await human_like_typing(page, 'div[aria-labelledby="modal-header"] input[name="text"]', os.getenv('X_PHONE_NUMBER'))
+                await page.click('div[aria-labelledby="modal-header"] span:has-text("Next")')
+                await human_like_typing(page, 'div[aria-labelledby="modal-header"] input[name="password"]', os.getenv('X_PASSWORD'))
+                await page.click('div[aria-labelledby="modal-header"] span:has-text("Log in")')
+         
+            try:
+                await page.wait_for_load_state("networkidle")
+                await page.wait_for_url(X_LOGIN_REDIRECT_URL, timeout=30000)
+                print("Tweet_injest Successfully logged in to X")
+                await save_session(self.context, x_session_file)
+            except Exception as e:
+                print(f"Tweet_injest Error during login redirection: {e}")
 
     def insert_tweet(self, tweet_data):
         try:
