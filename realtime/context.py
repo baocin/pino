@@ -90,9 +90,14 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
              FROM calendar_events ce
              WHERE ce.start_time BETWEEN now() - interval '3 hours' AND now() + interval '3 hours'
              LIMIT 5) AS relevant_calendar_event_based_on_time,
-            (SELECT EXTRACT(EPOCH FROM (now() - MAX(lt.created_at))) / 3600
-             FROM location_transitions lt
-             WHERE lt.device_id = d.id) AS hours_at_current_location
+            (SELECT EXTRACT(EPOCH FROM (now() - MAX(gps.created_at))) / 3600
+             FROM gps_data gps
+             WHERE gps.device_id = d.id
+               AND ST_DistanceSphere(
+                   ST_MakePoint(gps.longitude, gps.latitude),
+                   d.location::geometry
+               ) > 76.2  -- 250 feet in meters
+               AND gps.created_at > now() - interval '168 hours') AS hours_at_current_location
         FROM
             devices d
         LEFT JOIN known_locations kl ON kl.id = d.last_known_location_id
@@ -165,6 +170,7 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         FROM merged_speech
         ORDER BY start_time DESC;
         """
+        
         ocr_query = """
         SELECT ocr_result, created_at
         FROM image_data
@@ -221,7 +227,7 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         """
 
         github_repos_query = """
-        SELECT id, created_at, repo_name
+        SELECT repo_id, created_at, repo_name
         FROM public.github_stars
         WHERE created_at > NOW() - INTERVAL %s
         ORDER BY created_at DESC;
@@ -235,7 +241,7 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         """
 
         documents_query = """
-        SELECT id, created_at, name, content
+        SELECT id, created_at, name, document_text
         FROM public.documents
         ORDER BY created_at DESC;
         """
