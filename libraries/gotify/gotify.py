@@ -45,17 +45,18 @@ def send_gotify_message(title, message, priority=10, extras=None):
 def log_gotify_message(title, message, priority, status_code, extras):
     conn = None
     try:
-        conn = DB(
+        db = DB(
             host=os.getenv("POSTGRES_HOST"),
             port=os.getenv("POSTGRES_PORT"),
             database=os.getenv("POSTGRES_DB"),
             user=os.getenv("POSTGRES_USER"),
             password=os.getenv("POSTGRES_PASSWORD")
         )
+        conn = db.connection
         cursor = conn.cursor()
         insert_query = """
         INSERT INTO public.gotify_message_log (message, sent_at, parameters, device_id)
-        VALUES (%s, CURRENT_TIMESTAMP, %s, NULL)
+        VALUES (%s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC', %s, NULL)
         """
         parameters = {
             'title': title,
@@ -69,6 +70,9 @@ def log_gotify_message(title, message, priority, status_code, extras):
         cursor.close()
     except Exception as e:
         print(f"Error logging gotify message: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 # Example usage
 if __name__ == "__main__":
