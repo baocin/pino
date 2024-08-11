@@ -367,3 +367,5 @@ scheduled/tweets/venv/
 scheduled/x_session.json
 
 scheduled/github_stars.json
+
+sam/artifacts/
