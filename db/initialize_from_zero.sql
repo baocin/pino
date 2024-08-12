@@ -1020,6 +1020,44 @@ DROP TABLE IF EXISTS public.notification_data;
 DROP TABLE IF EXISTS public.server_data;
 DROP TABLE IF EXISTS public.wake_word_data;
 
+
+
+
+
+
+
+
+
+-- Create app_usage_stats table
+CREATE TABLE public.app_usage_stats (
+    id UUID DEFAULT uuid_generate_v7() PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    package_name TEXT NOT NULL,
+    total_time_in_foreground BIGINT NOT NULL,
+    first_timestamp BIGINT NOT NULL,
+    last_timestamp BIGINT NOT NULL,
+    last_time_used BIGINT NOT NULL,
+    last_time_visible BIGINT NOT NULL,
+    last_time_foreground_service_used BIGINT NOT NULL,
+    total_time_visible BIGINT NOT NULL,
+    total_time_foreground_service_used BIGINT NOT NULL
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_app_usage_stats_package_name ON public.app_usage_stats (package_name);
+CREATE INDEX idx_app_usage_stats_created_at ON public.app_usage_stats (created_at);
+
+
+
+
+
+
+
+
+
+
+
+
 SELECT
 	create_hypertable(
 		'emails',

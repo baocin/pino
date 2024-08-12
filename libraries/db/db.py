@@ -217,6 +217,35 @@ class DB:
         """
         self.execute_query(query, (sensor_type, x, y, z, device_id))
         
+
+    def insert_app_usage_stats(self, package_name, total_time_in_foreground, first_timestamp, last_timestamp, last_time_used, last_time_visible, last_time_foreground_service_used, total_time_visible, total_time_foreground_service_used):
+        check_query = """
+        SELECT id FROM app_usage_stats 
+        WHERE package_name = %s AND DATE(created_at) = DATE(NOW());
+        """
+        cursor = self.connection.cursor()
+        cursor.execute(check_query, (package_name,))
+        existing_record = cursor.fetchone()
+        
+        if existing_record:
+            update_query = """
+            UPDATE app_usage_stats
+            SET total_time_in_foreground = %s, first_timestamp = %s, last_timestamp = %s, last_time_used = %s, last_time_visible = %s, last_time_foreground_service_used = %s, total_time_visible = %s, total_time_foreground_service_used = %s
+            WHERE id = %s;
+            """
+            cursor.execute(update_query, (total_time_in_foreground, first_timestamp, last_timestamp, last_time_used, last_time_visible, last_time_foreground_service_used, total_time_visible, total_time_foreground_service_used, existing_record[0]))
+        else:
+            insert_query = """
+            INSERT INTO app_usage_stats (package_name, total_time_in_foreground, first_timestamp, last_timestamp, last_time_used, last_time_visible, last_time_foreground_service_used, total_time_visible, total_time_foreground_service_used)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (package_name, total_time_in_foreground, first_timestamp, last_timestamp, last_time_used, last_time_visible, last_time_foreground_service_used, total_time_visible, total_time_foreground_service_used))
+        
+        self.connection.commit()
+        cursor.close()
+
+        
+
     def insert_key_event_data(self, keyCode, action):
         query = """
         INSERT INTO key_event_data (keyCode, action)

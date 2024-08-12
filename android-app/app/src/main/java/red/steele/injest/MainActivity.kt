@@ -2,14 +2,15 @@ package red.steele.injest
 
 import android.Manifest
 import android.app.Activity
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.widget.EditText
 import android.widget.ImageView
@@ -66,7 +67,8 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.MANAGE_MEDIA,
         Manifest.permission.RECEIVE_SMS,
         Manifest.permission.READ_SMS,
-        Manifest.permission.SEND_SMS
+        Manifest.permission.SEND_SMS,
+        Manifest.permission.PACKAGE_USAGE_STATS
     )
 
     private lateinit var projectionManager: MediaProjectionManager
@@ -252,7 +254,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupServices() {
         // Services are now handled by ForegroundService
-        requestScreenCapture()
+        if (AppState.isAutoScreenshotServiceEnabled) {
+            requestScreenCapture()
+        }
+        requestUsageStatsPermission()
+
         val serviceIntent = Intent(this, ForegroundService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
     }
@@ -265,5 +271,22 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         updateHandler.removeCallbacks(updateRunnable) // Stop updating packet counts
         super.onDestroy()
+    }
+
+    private fun requestUsageStatsPermission() {
+        if (!hasUsageStatsPermission()) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            android.os.Process.myUid(),
+            packageName
+        )
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 }

@@ -144,6 +144,30 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif message_type == "sensor":
                     sensor_data = SensorData(**message.get("data"))
                     db.insert_sensor_data(sensor_data.sensorType, sensor_data.x, sensor_data.y, sensor_data.z, device_id)
+                elif message_type == "app_usage":
+                    app_usage_data = message.get("data", [])
+                    for app_usage in app_usage_data:
+                        package_name = app_usage.get("packageName")
+                        total_time_in_foreground = app_usage.get("totalTimeInForeground")
+                        first_timestamp = app_usage.get("firstTimeStamp")
+                        last_timestamp = app_usage.get("lastTimeStamp")
+                        last_time_used = app_usage.get("lastTimeUsed")
+                        last_time_visible = app_usage.get("lastTimeVisible")
+                        last_time_foreground_service_used = app_usage.get("lastTimeForegroundServiceUsed")
+                        total_time_visible = app_usage.get("totalTimeVisible")
+                        total_time_foreground_service_used = app_usage.get("totalTimeForegroundServiceUsed")
+                        
+                        db.insert_app_usage_stats(
+                            package_name,
+                            total_time_in_foreground,
+                            first_timestamp,
+                            last_timestamp,
+                            last_time_used,
+                            last_time_visible,
+                            last_time_foreground_service_used,
+                            total_time_visible,
+                            total_time_foreground_service_used
+                        )
                     
                 # elif message_type == "manual_photo":
                 #     print(f"message: {message}")

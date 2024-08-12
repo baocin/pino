@@ -31,14 +31,19 @@ class ForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Start and manage the sensor, GPS, audio, and screenshot services
-//        if (hasPermissions()) {
+       if (hasPermissions()) {
             // startService(Intent(this, ImageSyncService::class.java))
-              startService(Intent(this, AutoScreenshotService::class.java))
-            startService(Intent(this, GpsService::class.java))
-            startService(Intent(this, SensorService::class.java))
-            startService(Intent(this, AudioService::class.java))
+            // startService(Intent(this, AutoScreenshotService::class.java))
+
+
+
+           startService(Intent(this, GpsService::class.java))
+           startService(Intent(this, SensorService::class.java))
+           startService(Intent(this, AudioService::class.java))
+            startService(Intent(this, AppUsageStats::class.java))
+
             // startService(Intent(this, SMSService::class.java))
-//        }
+       }
 
         return START_STICKY
     }
@@ -63,7 +68,9 @@ class ForegroundService : Service() {
             android.Manifest.permission.ACCESS_FINE_LOCATION,
             android.Manifest.permission.CAMERA,
             android.Manifest.permission.READ_EXTERNAL_STORAGE,
-            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            android.Manifest.permission.BATTERY_STATS,
+
         )
         val allGranted = permissions.all {
             val isGranted = ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED

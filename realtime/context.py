@@ -73,12 +73,13 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
             (SELECT MAX(kcd.created_at)
              FROM known_class_detections kcd
              JOIN known_classes kc ON kcd.known_class_id = kc.id
-             WHERE kc.name = 'electric_toothbrush') AS last_brushed_teeth,
+             WHERE kc.name = 'electric_toothbrush' and ground_truth = true) AS last_brushed_teeth,
             CASE 
                 WHEN (SELECT MAX(kcd.created_at)
                       FROM known_class_detections kcd
                       JOIN known_classes kc ON kcd.known_class_id = kc.id
-                      WHERE kc.name = 'electric_toothbrush') > now() - interval '24 hours'
+                      WHERE kc.name = 'electric_toothbrush'
+                      and ground_truth = true) > now() - interval '24 hours'
                 THEN true
                 ELSE false
             END AS brushed_teeth_last_24h,
@@ -305,6 +306,50 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         time_since_last_call = datetime.now(timezone.utc) - last_llm_call
         minutes = int(time_since_last_call.total_seconds() / 60)
         context['last_time_llm_was_called_relative'] = f"{minutes} minutes ago"
+
+        try:
+            last_used_app_row = db.sync_query(
+                """
+                SELECT package_name, last_time_visible 
+                FROM public.app_usage_stats 
+                WHERE created_at >= CURRENT_DATE 
+                ORDER BY last_time_visible DESC 
+                LIMIT 1
+                """
+            )
+
+            if last_used_app_row:
+                last_used_app = last_used_app_row[0][0]
+                last_time_visible = datetime.utcfromtimestamp(last_used_app_row[0][1] / 1000.0)
+                context['last_used_app'] = last_used_app
+            else:
+                context['last_used_app'] = None
+
+            # Calculate the foreground usage time for every app and add that to context
+            app_usage_rows = db.sync_query(
+                """
+                SELECT package_name, SUM(total_time_in_foreground) as total_foreground_time
+                FROM public.app_usage_stats
+                WHERE created_at >= CURRENT_DATE
+                GROUP BY package_name
+                ORDER BY total_foreground_time DESC
+                """
+            )
+            
+            app_foreground_usage = {}
+            if app_usage_rows:
+                for row in app_usage_rows:
+                    package_name = row[0]
+                    total_foreground_time_ms = row[1]
+                    total_foreground_time_minutes = total_foreground_time_ms / (1000 * 60)  # Convert milliseconds to minutes
+                    if total_foreground_time_minutes >= 1:
+                        app_foreground_usage[package_name] = total_foreground_time_minutes
+
+            context['app_foreground_usage'] = app_foreground_usage
+
+        except Exception as e:
+            logger.error(f"Error querying app_usage_stats: {str(e)}")
+            context['last_used_app'] = None
 
 
         last_sent_notification_hours_ago = None
