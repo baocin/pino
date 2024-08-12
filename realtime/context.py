@@ -305,6 +305,26 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         minutes = int(time_since_last_call.total_seconds() / 60)
         context['last_time_llm_was_called_relative'] = f"{minutes} minutes ago"
 
+
+
+        last_sent_notification_hours_ago = None
+        try:
+            last_sent_at_row = db.sync_query(
+                """
+                SELECT sent_at AT TIME ZONE 'UTC' FROM gotify_message_log 
+                ORDER BY sent_at DESC 
+                LIMIT 1
+                """
+            )
+            if last_sent_at_row:
+                last_sent_at = last_sent_at_row[0][0]
+                time_since_last_sent = datetime.datetime.utcnow() - last_sent_at
+                last_sent_notification_hours_ago = time_since_last_sent.total_seconds() / 3600
+                context['last_sent_notification_hours_ago'] = last_sent_notification_hours_ago
+                
+        except Exception as e:
+            logger.error(f"Error querying gotify_message_log: {str(e)}")
+
         # Add known classes detection times to context
         known_classes_relative = {}
         if all_known_classes_data:

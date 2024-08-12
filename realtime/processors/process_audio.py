@@ -205,23 +205,28 @@ class AudioProcessor:
                     # Query the gotify_message_log to find the last "sent_at" timestamp
                     last_sent_at_row = self.db.sync_query(
                         """
-                        SELECT sent_at FROM gotify_message_log 
+                        SELECT sent_at AT TIME ZONE 'UTC' FROM gotify_message_log 
                         ORDER BY sent_at DESC 
                         LIMIT 1
                         """
                     )
+                    logger.info(f"Last sent at: {last_sent_at_row}")
                     if last_sent_at_row:
                         last_sent_at = last_sent_at_row[0][0]
-                        time_since_last_sent = datetime.datetime.now() - last_sent_at
+                        time_since_last_sent = datetime.datetime.utcnow() - last_sent_at
+                        logger.info(f"Time since last sent: {time_since_last_sent}")
 
-                        # Check if it has been more than 15 minutes and similarity is > 0.1
-                        if time_since_last_sent.total_seconds() > 900 and similarity > 0.1 and similarity < known_class['radius_threshold']:
-                            # Ask the user to confirm
-                            user_confirmation = self.ask_user_confirmation(known_class, similarity)
-                            if not user_confirmation:
-                                return
+                        # # Check if it has been more than 15 minutes and similarity is > 0.1
+                        # if time_since_last_sent.total_seconds() > 900 and similarity > 0.1 and similarity < known_class['radius_threshold']:
+                        #     # Ask the user to confirm
+                        #     user_confirmation = self.ask_user_confirmation(known_class, similarity)
+                        #     if not user_confirmation:
+                        #         return
+                        
                 except Exception as e:
                     logger.error(f"Error querying gotify_message_log: {str(e)}")
+
+
 
                 if similarity >= known_class['radius_threshold']:
                     logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")

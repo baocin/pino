@@ -18,7 +18,7 @@
             <p><strong>Screen Up:</strong> {{ "Yes" if screen_up else "No" }}</p>
             <p><strong>Last Movement:</strong> {{ last_movement }}</p>
             <p><strong>Movement Type:</strong> {{ movement_type }}</p>
-            <p><strong>Minutes Since Last Movement:</strong> {{ minutes_since_last_movement|round(2) if minutes_since_last_movement is not none else "Unknown" }}</p>
+            <p><strong>Minutes Since Last (Accelerometer) Movement:</strong> {{ minutes_since_last_movement|round(2) if minutes_since_last_movement is not none else "Unknown" }}</p>
         </div>
 
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
@@ -32,6 +32,7 @@
             <p><strong>Location Changes (Last 24h):</strong> {{ location_changes_last_24h }}</p>
             <p><strong>Visited Known Locations (Last 24h):</strong> {{ visited_known_locations_last_24h }}</p>
             <p><strong>Hours at Current Location:</strong> {{ hours_at_current_location }}</p>
+            <p><strong>Last Sent Notification Hours Ago:</strong> {{ last_sent_notification_hours_ago }}</p>
         </div>
 
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
