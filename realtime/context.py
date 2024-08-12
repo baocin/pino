@@ -323,7 +323,6 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
                 logger.info(f"context - Time since last sent: {time_since_last_sent}")
                 last_sent_notification_hours_ago = time_since_last_sent.total_seconds() / 3600
                 context['last_sent_notification_hours_ago'] = f"{last_sent_notification_hours_ago:.2f} hours ago"
-                logger.info(f"Context: {context['last_sent_notification_hours_ago']}")
                 
                 
         except Exception as e:
