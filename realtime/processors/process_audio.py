@@ -201,6 +201,7 @@ class AudioProcessor:
             if classifier:
                 similarity = classifier.predict_proba(audio_embed)[0][1]
 
+                time_since_last_sent = None
                 try:
                     # Query the gotify_message_log to find the last "sent_at" timestamp
                     last_sent_at_row = self.db.sync_query(
@@ -214,7 +215,7 @@ class AudioProcessor:
                     if last_sent_at_row:
                         last_sent_at = last_sent_at_row[0][0]
                         time_since_last_sent = datetime.datetime.utcnow() - last_sent_at
-                        logger.info(f"Time since last sent: {time_since_last_sent}")
+                        logger.info(f"process audio - Time since last sent: {time_since_last_sent}")
 
                         # # Check if it has been more than 15 minutes and similarity is > 0.1
                         # if time_since_last_sent.total_seconds() > 900 and similarity > 0.1 and similarity < known_class['radius_threshold']:
@@ -226,9 +227,11 @@ class AudioProcessor:
                 except Exception as e:
                     logger.error(f"Error querying gotify_message_log: {str(e)}")
 
+                get_irregular_low_similarity_detections = (time_since_last_sent is not None and time_since_last_sent.total_seconds() > 900 and similarity > 0.1 and similarity < known_class['radius_threshold'])
+                if get_irregular_low_similarity_detections:
+                    logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f} since it has been more than 15 minutes and similarity is > 0.1")
 
-
-                if similarity >= known_class['radius_threshold']:
+                if similarity >= known_class['radius_threshold'] or get_irregular_low_similarity_detections:
                     logger.info(f"Detected known audio class: {known_class['name']} with similarity {similarity:.4f}")
                     try:
                         # Convert audio data to WAV format

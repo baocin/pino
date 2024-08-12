@@ -28,10 +28,11 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
             d.online,
             kl.name AS last_known_location,
             ST_AsText(d.location) AS current_location,
-            (SELECT ST_Distance(d.location::geography, ltl.location::geography)
-             FROM device_status_log ltl
+            (SELECT ST_Distance(d.location::geography, ST_GeogFromText(ST_AsText(kl.gps_polygon)))
+             FROM location_transitions ltl
+             JOIN known_locations kl ON ltl.location_id = kl.id
              WHERE ltl.device_id = d.id
-             ORDER BY ltl.timestamp DESC
+             ORDER BY ltl.created_at DESC
              LIMIT 1) AS distance_from_last_known_location,
             CASE 
                 WHEN d.speed IS NULL THEN 'unknown'
@@ -306,7 +307,6 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
         context['last_time_llm_was_called_relative'] = f"{minutes} minutes ago"
 
 
-
         last_sent_notification_hours_ago = None
         try:
             last_sent_at_row = db.sync_query(
@@ -316,11 +316,15 @@ async def get_current_context_logic(request: Request, json_only: bool = False, h
                 LIMIT 1
                 """
             )
+
             if last_sent_at_row:
                 last_sent_at = last_sent_at_row[0][0]
-                time_since_last_sent = datetime.datetime.utcnow() - last_sent_at
+                time_since_last_sent = datetime.utcnow() - last_sent_at
+                logger.info(f"context - Time since last sent: {time_since_last_sent}")
                 last_sent_notification_hours_ago = time_since_last_sent.total_seconds() / 3600
-                context['last_sent_notification_hours_ago'] = last_sent_notification_hours_ago
+                context['last_sent_notification_hours_ago'] = f"{last_sent_notification_hours_ago:.2f} hours ago"
+                logger.info(f"Context: {context['last_sent_notification_hours_ago']}")
+                
                 
         except Exception as e:
             logger.error(f"Error querying gotify_message_log: {str(e)}")
